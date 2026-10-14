@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Les Procédures Stockées – Simplifié</title>
+<style>
+:root{--bg:#f7f8fb;--card:#fff;--tx:#1c2233;--mut:#5b6478;--ac:#2f6fed;--in:#16a34a;--out:#ea580c;--io:#7c3aed;--code:#0f172a;--codetx:#e2e8f0;--bd:#e3e7ef;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1420;--card:#171e2e;--tx:#e8ecf5;--mut:#98a2b8;--ac:#6b9bff;--bd:#28314a;--code:#0a0e18}}
+:root[data-theme="dark"]{--bg:#0f1420;--card:#171e2e;--tx:#e8ecf5;--mut:#98a2b8;--ac:#6b9bff;--bd:#28314a;--code:#0a0e18}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.6}
+header{background:linear-gradient(135deg,#2f6fed,#7c3aed);color:#fff;padding:2.2rem 1rem;text-align:center}
+header h1{margin:0 0 .3rem;font-size:clamp(1.6rem,5vw,2.4rem)}
+header p{margin:0;opacity:.9}
+main{max-width:860px;margin:0 auto;padding:1rem}
+section{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:1.2rem 1.3rem;margin:1rem 0}
+h2{margin:0 0 .6rem;font-size:1.3rem;color:var(--ac)}
+h3{margin:1rem 0 .3rem}
+.tag{display:inline-block;font-weight:700;font-size:.8rem;padding:.1rem .6rem;border-radius:99px;color:#fff;vertical-align:middle}
+.t-in{background:var(--in)}.t-out{background:var(--out)}.t-io{background:var(--io)}
+pre{background:var(--code);color:var(--codetx);padding:.9rem 1rem;border-radius:10px;overflow-x:auto;font-size:.88rem;line-height:1.5;margin:.6rem 0}
+code{font-family:ui-monospace,Consolas,monospace}
+.k{color:#7dd3fc}.c{color:#94a3b8}.s{color:#fca5a5}
+.box{border-left:4px solid var(--ac);background:color-mix(in srgb,var(--ac) 10%,transparent);padding:.6rem .9rem;border-radius:8px;margin:.7rem 0}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:.5rem 0 .5rem 2.6rem}
+.steps li:before{content:counter(s);position:absolute;left:0;top:.4rem;width:1.9rem;height:1.9rem;border-radius:50%;background:var(--ac);color:#fff;display:grid;place-items:center;font-weight:700}
+.grid{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.mini{border:1px solid var(--bd);border-radius:10px;padding:.7rem .9rem}
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:520px}
+th,td{border:1px solid var(--bd);padding:.5rem .6rem;text-align:left}
+th{background:color-mix(in srgb,var(--ac) 12%,transparent)}
+ul{padding-left:1.2rem}
+details{margin-top:.8rem}summary{cursor:pointer;padding:.4rem 0}
+</style>
+</head>
+<body>
+<header>
+<h1>📦 Les Procédures Stockées</h1>
+<p>Comprendre les PS simplement : IN, OUT, INOUT</p>
+</header>
+<main>
+
+<section>
+<h2>1. Définition</h2>
+<p>Une <b>procédure stockée</b> (PS) est un <b>ensemble de requêtes SQL enregistré dans la base de données</b> avec un nom, à exécuter en cas de besoin avec <code>CALL</code>.</p>
+<div class="box">💡 <b>Image simple :</b> c'est comme une <b>recette de cuisine</b> enregistrée. On ne réécrit pas la recette à chaque fois : on dit juste « fais la recette X avec ces ingrédients » (les paramètres).</div>
+<h3>Ce qu'elle peut contenir</h3>
+<ul>
+<li>Plusieurs requêtes SQL (<code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>...).</li>
+<li>Des <b>instructions conditionnelles</b> : <code>IF</code>, <code>CASE</code>.</li>
+<li>Des <b>boucles</b>.</li>
+<li>L'appel d'une <b>autre procédure</b> ou d'une <b>fonction</b> pour découper le code en modules.</li>
+</ul>
+</section>
+
+<section>
+<h2>2. Pourquoi les utiliser ? (Utilité et avantages)</h2>
+<div class="box">👉 <b>Quand l'utiliser ?</b> Dès qu'une requête (ou un ensemble de requêtes) doit être <b>répétée régulièrement</b>. Elle est aussi idéale pour déplacer les <b>traitements lourds</b> vers le serveur MySQL.</div>
+<div class="grid">
+<div class="mini"><b>🌐 Réduire le trafic réseau</b><br>Plusieurs requêtes sont regroupées dans une seule procédure. On envoie uniquement <b>le nom et les paramètres</b> au lieu de toutes les requêtes.</div>
+<div class="mini"><b>🛠️ Facile à maintenir</b><br>La logique métier est <b>réutilisable</b> par plusieurs applications ou modules. La base est plus <b>cohérente</b>. Si ça change, on modifie <b>un seul endroit</b>.</div>
+<div class="mini"><b>🔒 Plus sécurisée</b><br>Plus sûre que les requêtes ad hoc. On peut autoriser un utilisateur à exécuter la PS <b>sans lui donner accès aux tables</b>. Elle aide à se protéger contre l'<b>injection SQL</b>.</div>
+</div>
+</section>
+
+<section>
+<h2>3. Cas d'utilisation</h2>
+<div class="grid">
+<div class="mini">👨‍💻 <b>Développeurs</b><br>Ajouter un développeur ou l'affecter à un projet.</div>
+<div class="mini">📁 <b>Projets</b><br>Afficher les développeurs d'un projet.</div>
+<div class="mini">💿 <b>Logiciels</b><br>Calculer le prix total des logiciels d'un projet.</div>
+<div class="mini">📊 <b>Rapports</b><br>Compter les logiciels ou les projets d'un développeur.</div>
+</div>
+</section>
+
+<section>
+<h2>4. Notre base de données</h2>
+<p>Tous les exemples utilisent la base que nous avons déjà : des <b>développeurs</b> qui réalisent des <b>projets</b>, et chaque projet a des <b>logiciels</b>.</p>
+<div class="grid">
+<div class="mini"><b>👨‍💻 developpeur</b><br><small>numdev (PK), nomdev, adrdev, emaildev, teldev</small></div>
+<div class="mini"><b>📁 projet</b><br><small>numproj (PK), titreproj, datedeb, datefin</small></div>
+<div class="mini"><b>💿 logiciel</b><br><small>codlog (PK), nomlog, prixlog, numproj (FK → projet)</small></div>
+<div class="mini"><b>🔗 realisation</b><br><small>numproj + numdev (PK composée, FK vers projet et developpeur)</small></div>
+</div>
+<div class="box">💡 <b>Relations :</b> un projet contient plusieurs logiciels (1,N) · un développeur peut travailler sur plusieurs projets et un projet a plusieurs développeurs (N,N via <code>realisation</code>).</div>
+</section>
+
+<section>
+<h2>5. Syntaxe (MySQL)</h2>
+<pre><code><span class="c">-- Changer le délimiteur pour pouvoir écrire ; dans la procédure</span>
+<span class="k">DELIMITER</span> //
+
+<span class="k">CREATE PROCEDURE</span> nom_procedure(
+    <span class="k">IN</span>    param1 TYPE,
+    <span class="k">OUT</span>   param2 TYPE,
+    <span class="k">INOUT</span> param3 TYPE
+)
+<span class="k">BEGIN</span>
+    <span class="c">-- instructions SQL</span>
+<span class="k">END</span> //
+
+<span class="k">DELIMITER</span> ;
+
+<span class="c">-- Appel</span>
+<span class="k">CALL</span> nom_procedure(...);
+
+<span class="c">-- Suppression</span>
+<span class="k">DROP PROCEDURE</span> nom_procedure;</code></pre>
+</section>
+
+<section>
+<h2>6. Méthodologie simple (5 étapes)</h2>
+<ol class="steps">
+<li><b>Définir le besoin</b> : que doit faire la procédure ? (ex : afficher les logiciels d'un projet)</li>
+<li><b>Choisir les paramètres</b> : qu'est-ce qui entre ? (IN) Qu'est-ce qui sort ? (OUT)</li>
+<li><b>Écrire</b> la requête SQL à l'intérieur du <code>BEGIN ... END</code>.</li>
+<li><b>Créer</b> la procédure (exécuter le <code>CREATE PROCEDURE</code>).</li>
+<li><b>Appeler et tester</b> avec <code>CALL</code>.</li>
+</ol>
+</section>
+
+<section>
+<h2>7. Un exemple très simple</h2>
+<p>Sans paramètre : afficher tous les développeurs.</p>
+<pre class="sql"><code>DELIMITER //
+CREATE PROCEDURE afficher_developpeurs()
+BEGIN
+    SELECT * FROM developpeur;
+END //
+DELIMITER ;
+
+CALL afficher_developpeurs();</code></pre>
+</section>
+
+<section>
+<h2>8. Les types de paramètres</h2>
+<div class="wrap">
+<table>
+<tr><th>Type</th><th>Sens</th><th>Rôle</th></tr>
+<tr><td><span class="tag t-in">IN</span></td><td>Entrée → PS</td><td>On <b>donne</b> une valeur à la PS. Elle la lit seulement (défaut).</td></tr>
+<tr><td><span class="tag t-out">OUT</span></td><td>PS → Sortie</td><td>La PS <b>renvoie</b> un résultat dans une variable.</td></tr>
+<tr><td><span class="tag t-io">INOUT</span></td><td>Entrée ↔ Sortie</td><td>On donne une valeur, la PS la <b>modifie</b> et la renvoie.</td></tr>
+</table>
+</div>
+
+<h3><span class="tag t-in">IN</span> Paramètre d'entrée</h3>
+<p><b>Exemple 1 :</b> afficher les logiciels d'un projet donné.</p>
+<pre class="sql"><code>DELIMITER //
+CREATE PROCEDURE logiciels_du_projet(IN p_numproj INT)
+BEGIN
+    SELECT codlog, nomlog, prixlog
+    FROM logiciel
+    WHERE numproj = p_numproj;
+END //
+DELIMITER ;
+
+CALL logiciels_du_projet(1);</code></pre>
+<p><b>Exemple 2 :</b> ajouter un développeur (plusieurs paramètres IN).</p>
+<pre class="sql"><code>DELIMITER //
+CREATE PROCEDURE ajouter_developpeur(
+    IN p_nom   VARCHAR(32),
+    IN p_adr   VARCHAR(32),
+    IN p_email VARCHAR(32),
+    IN p_tel   VARCHAR(10)
+)
+BEGIN
+    INSERT INTO developpeur(nomdev, adrdev, emaildev, teldev)
+    VALUES (p_nom, p_adr, p_email, p_tel);
+END //
+DELIMITER ;
+
+CALL ajouter_developpeur('Alaoui Sara', 'Rabat', 'sara@mail.com', '0612345678');</code></pre>
+
+<h3><span class="tag t-out">OUT</span> Paramètre de sortie</h3>
+<p>Calculer le <b>prix total</b> des logiciels d'un projet et récupérer ce total.</p>
+<pre class="sql"><code>DELIMITER //
+CREATE PROCEDURE prix_total_projet(
+    IN  p_numproj INT,
+    OUT p_total   DOUBLE
+)
+BEGIN
+    SELECT IFNULL(SUM(prixlog), 0) INTO p_total
+    FROM logiciel
+    WHERE numproj = p_numproj;
+END //
+DELIMITER ;
+
+CALL prix_total_projet(1, @total);
+SELECT @total;   -- affiche le résultat</code></pre>
+
+<h3><span class="tag t-io">INOUT</span> Paramètre entrée/sortie</h3>
+<p>Augmenter un prix de logiciel : on envoie le prix, il revient modifié.</p>
+<pre class="sql"><code>DELIMITER //
+CREATE PROCEDURE augmenter_prix(
+    INOUT p_prix    DOUBLE,
+    IN    p_pourcent INT
+)
+BEGIN
+    SET p_prix = p_prix + (p_prix * p_pourcent / 100);
+END //
+DELIMITER ;
+
+SET @prix = 1000;
+CALL augmenter_prix(@prix, 10);
+SELECT @prix;   -- 1100</code></pre>
+<div class="box" style="border-left-color:var(--out)">⚠️ <b>Erreur fréquente :</b> avec <span class="tag t-out">OUT</span> et <span class="tag t-io">INOUT</span>, on ne peut <b>pas</b> passer une valeur directe. La procédure doit <b>écrire</b> le résultat quelque part : il faut donc une <b>variable</b> (<code>@nom</code>).</div>
+<pre class="sql"><code>-- ❌ Faux : 200 est une valeur, pas une variable
+CALL augmenter_prix(200, 10);
+-- Erreur MySQL : OUT or INOUT argument 1 for routine ... is not a variable
+
+-- ✅ Correct : on met d'abord la valeur dans une variable
+SET @prix = 200;
+CALL augmenter_prix(@prix, 10);
+SELECT @prix;   -- 220</code></pre>
+<p><small>Le paramètre <b>IN</b> n'a pas ce problème : <code>CALL logiciels_du_projet(1);</code> fonctionne avec une valeur directe.</small></p>
+</section>
+
+<section>
+<h2>9. Que retourne une procédure ? Deux types de sortie</h2>
+<p>Attention : <span class="tag t-out">OUT</span> ne renvoie qu'<b>une seule valeur</b> (un prix, un total...). Mais une procédure peut aussi renvoyer <b>une liste de lignes</b> (un tableau de résultats) grâce à un simple <code>SELECT</code>.</p>
+<div class="grid">
+<div class="mini"><b>1️⃣ Une valeur</b><br>Avec un paramètre <span class="tag t-out">OUT</span> ou <span class="tag t-io">INOUT</span>.<br><small>Ex : prix total = 4500</small></div>
+<div class="mini"><b>2️⃣ Une liste de lignes</b><br>Avec un <code>SELECT</code> dans la procédure (pas besoin de OUT).<br><small>Ex : les développeurs d'un projet</small></div>
+</div>
+<h3>Exemple : la procédure renvoie plusieurs lignes</h3>
+<pre class="sql"><code>DELIMITER //
+CREATE PROCEDURE developpeurs_du_projet(IN p_numproj INT)
+BEGIN
+    -- Ce SELECT renvoie un ensemble de lignes (result set)
+    SELECT d.numdev, d.nomdev, d.emaildev
+    FROM developpeur d
+    JOIN realisation r ON d.numdev = r.numdev
+    WHERE r.numproj = p_numproj;
+END //
+DELIMITER ;
+
+CALL developpeurs_du_projet(1);</code></pre>
+<p><b>Résultat affiché</b> (exemple, selon vos données) :</p>
+<div class="wrap">
+<table>
+<tr><th>numdev</th><th>nomdev</th><th>emaildev</th></tr>
+<tr><td>1</td><td>Alaoui Sara</td><td>sara@mail.com</td></tr>
+<tr><td>4</td><td>Bennani Youssef</td><td>youssef@mail.com</td></tr>
+<tr><td>7</td><td>Idrissi Amine</td><td>amine@mail.com</td></tr>
+</table>
+</div>
+<div class="box">💡 On peut même <b>combiner les deux</b> : afficher la liste des logiciels avec <code>SELECT</code> ET renvoyer leur nombre dans un paramètre <code>OUT</code>.</div>
+<pre class="sql"><code>CREATE PROCEDURE logiciels_et_nombre(IN p_numproj INT, OUT p_nb INT)
+BEGIN
+    SELECT * FROM logiciel WHERE numproj = p_numproj;                     -- liste de lignes
+    SELECT COUNT(*) INTO p_nb FROM logiciel WHERE numproj = p_numproj;    -- une valeur
+END</code></pre>
+</section>
+
+<section>
+<h2>10. À retenir</h2>
+<ul>
+<li>Une PS = un <b>programme SQL enregistré</b> qu'on appelle avec <code>CALL</code>.</li>
+<li><span class="tag t-in">IN</span> je <b>donne</b> · <span class="tag t-out">OUT</span> je <b>reçois</b> · <span class="tag t-io">INOUT</span> je <b>donne et je reçois</b> la valeur modifiée.</li>
+<li>Avec OUT et INOUT, on utilise des <b>variables</b> (<code>@nom</code>) pour récupérer le résultat.</li>
+<li>Le retour peut être <b>une valeur</b> (OUT / INOUT) ou <b>une liste de lignes</b> (un <code>SELECT</code> dans la procédure).</li>
+<li>Avantages : réutilisation, rapidité, sécurité, maintenance.</li>
+</ul>
+</section>
+
+<section>
+<h2>11. Exercice d'application</h2>
+<p>Sur notre base (<code>developpeur</code>, <code>projet</code>, <code>logiciel</code>, <code>realisation</code>), créez les procédures stockées suivantes, puis testez-les avec <code>CALL</code>.</p>
+<pre>EXERCICE : Procédures stockées (MySQL)
+
+Q1. (Sans paramètre)
+    Créer la procédure  afficher_projets()  qui affiche
+    tous les projets.
+
+Q2. (IN)
+    Créer la procédure  logiciels_chers(p_numproj, p_prixmin)
+    qui affiche les logiciels d'un projet dont le prix est
+    supérieur à un prix donné.
+
+Q3. (IN)
+    Créer la procédure  ajouter_projet(p_titre, p_datedeb, p_datefin)
+    qui ajoute un nouveau projet.
+
+Q4. (OUT)
+    Créer la procédure  nb_developpeurs(p_numproj, p_nb)
+    qui renvoie le nombre de développeurs d'un projet.
+
+Q5. (INOUT)
+    Créer la procédure  appliquer_remise(p_prix, p_pourcent)
+    qui diminue un prix du pourcentage donné.
+    Tester avec un prix de 500 et une remise de 20 %
+    (attention : passer une variable @prix, pas une valeur).
+
+Q6. (Liste de lignes)
+    Créer la procédure  projets_du_developpeur(p_numdev)
+    qui affiche le titre et les dates des projets
+    réalisés par un développeur.
+
+BONUS.
+    Créer la procédure  bilan_projet(p_numproj, p_total)
+    qui affiche la liste des logiciels du projet ET renvoie
+    dans p_total la somme de leurs prix.</pre>
+
+<details>
+<summary><b>👀 Voir la correction (formateur)</b></summary>
+<pre class="sql"><code>-- Q1
+DELIMITER //
+CREATE PROCEDURE afficher_projets()
+BEGIN
+    SELECT * FROM projet;
+END //
+
+-- Q2
+CREATE PROCEDURE logiciels_chers(IN p_numproj INT, IN p_prixmin DOUBLE)
+BEGIN
+    SELECT codlog, nomlog, prixlog
+    FROM logiciel
+    WHERE numproj = p_numproj AND prixlog > p_prixmin;
+END //
+
+-- Q3
+CREATE PROCEDURE ajouter_projet(IN p_titre VARCHAR(64), IN p_datedeb DATE, IN p_datefin DATE)
+BEGIN
+    INSERT INTO projet(titreproj, datedeb, datefin)
+    VALUES (p_titre, p_datedeb, p_datefin);
+END //
+
+-- Q4
+CREATE PROCEDURE nb_developpeurs(IN p_numproj INT, OUT p_nb INT)
+BEGIN
+    SELECT COUNT(*) INTO p_nb
+    FROM realisation
+    WHERE numproj = p_numproj;
+END //
+
+-- Q5
+CREATE PROCEDURE appliquer_remise(INOUT p_prix DOUBLE, IN p_pourcent INT)
+BEGIN
+    SET p_prix = p_prix - (p_prix * p_pourcent / 100);
+END //
+
+-- Q6
+CREATE PROCEDURE projets_du_developpeur(IN p_numdev INT)
+BEGIN
+    SELECT p.titreproj, p.datedeb, p.datefin
+    FROM projet p
+    JOIN realisation r ON p.numproj = r.numproj
+    WHERE r.numdev = p_numdev;
+END //
+
+-- BONUS
+CREATE PROCEDURE bilan_projet(IN p_numproj INT, OUT p_total DOUBLE)
+BEGIN
+    SELECT * FROM logiciel WHERE numproj = p_numproj;
+    SELECT IFNULL(SUM(prixlog), 0) INTO p_total
+    FROM logiciel WHERE numproj = p_numproj;
+END //
+DELIMITER ;
+
+-- Tests
+CALL afficher_projets();
+CALL logiciels_chers(1, 1000);
+CALL ajouter_projet('Site e-commerce', '2026-01-10', '2026-06-30');
+CALL nb_developpeurs(1, @nb);   SELECT @nb;
+SET @prix = 500;
+CALL appliquer_remise(@prix, 20);   SELECT @prix;   -- 400
+CALL projets_du_developpeur(1);
+CALL bilan_projet(1, @total);   SELECT @total;</code></pre>
+</details>
+</section>
+
+</main>
+<script>
+(function(){
+var kw="CREATE|PROCEDURE|DELIMITER|BEGIN|END|CALL|SELECT|FROM|WHERE|INSERT|INTO|VALUES|JOIN|ON|SUM|COUNT|IFNULL|SET|IN|OUT|INOUT|INT|DOUBLE|VARCHAR|DROP";
+var re=new RegExp("(--[^\\n]*)|('(?:[^']|'')*')|\\b("+kw+")\\b","g");
+document.querySelectorAll("pre.sql code").forEach(function(el){
+var t=el.textContent.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+el.innerHTML=t.replace(re,function(m,c,s,k){return c?'<span class="c">'+c+'</span>':s?'<span class="s">'+s+'</span>':'<span class="k">'+k+'</span>';});
+});
+})();
+</script>
+</body>
+</html>

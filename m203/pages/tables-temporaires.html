@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<script>if(window.self!==window.top)document.documentElement.classList.add("embedded")</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tables temporaires MySQL — Ce qu'il faut retenir</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #F1F4F1;
+    --panel: #FFFFFF;
+    --ink: #16211E;
+    --ink-soft: #4B5750;
+    --line: #D7DED8;
+    --teal: #1F7A6C;
+    --teal-dark: #145147;
+    --amber: #B5651D;
+    --amber-bg: #FBEEE1;
+    --code-bg: #10231F;
+    --code-text: #DCEfe7;
+    --code-mint: #8FE3C7;
+    --code-amber: #F0B87A;
+    --code-blue: #7EC8E3;
+    --radius-card: 3px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Public Sans', sans-serif;
+    line-height:1.55;
+    font-size:16px;
+  }
+  h1,h2,h3{
+    font-family:'Space Grotesk', sans-serif;
+    color:var(--ink);
+    line-height:1.15;
+    margin:0 0 0.5em 0;
+  }
+  code, .mono{ font-family:'IBM Plex Mono', monospace; }
+  a{ color: var(--teal-dark); }
+
+  /* ---------- Layout shell ---------- */
+  .app{
+    display:grid;
+    grid-template-columns: 260px 1fr;
+    min-height:100vh;
+  }
+  @media (max-width: 860px){
+    .app{ grid-template-columns: 1fr; }
+    .sidebar{ position:static; height:auto; }
+  }
+
+  /* ---------- Sidebar : schema explorer ---------- */
+  .sidebar{
+    position:sticky; top:0; align-self:start;
+    height:100vh;
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 28px 18px;
+    overflow-y:auto;
+    border-right: 1px solid #0A1613;
+  }
+  .sidebar .db-name{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600;
+    font-size: 15px;
+    color:#fff;
+    display:flex; align-items:center; gap:8px;
+    margin-bottom: 4px;
+  }
+  .sidebar .db-name .dot{
+    width:8px; height:8px; border-radius:50%;
+    background: var(--code-mint);
+    box-shadow: 0 0 6px var(--code-mint);
+    flex:none;
+  }
+  .sidebar .db-sub{
+    font-size:12.5px; color:#7C9089; margin-bottom:22px;
+    font-family:'IBM Plex Mono', monospace;
+  }
+  .schema-tree{ list-style:none; margin:0; padding:0; }
+  .schema-tree li{ margin:0; }
+  .schema-tree a{
+    display:flex; align-items:baseline; gap:8px;
+    text-decoration:none;
+    color:#B7C7C1;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13.5px;
+    padding:7px 8px;
+    border-left: 2px solid transparent;
+    border-radius: 2px;
+    transition: background .12s ease, color .12s ease, border-color .12s ease;
+  }
+  .schema-tree a .idx{ color:#5B7167; font-size:12px; flex:none; }
+  .schema-tree a:hover{ background:#17332C; color:#fff; }
+  .schema-tree a.active{ border-left-color: var(--code-mint); color:#fff; background:#17332C; }
+
+  /* ---------- Main content ---------- */
+  main{ padding: 56px 48px 100px; max-width: 880px; }
+  @media (max-width: 860px){ main{ padding: 36px 22px 80px; } }
+
+  .hero{ margin-bottom: 54px; }
+  .hero .eyebrow-line{
+    display:flex; align-items:center; gap:10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px; color: var(--teal-dark);
+    margin-bottom:16px;
+  }
+  .hero .eyebrow-line::before{
+    content:"mysql>"; color:var(--ink-soft);
+  }
+  .hero h1{ font-size: 40px; max-width: 14ch; }
+  .hero p.lede{
+    font-size:17px; color:var(--ink-soft); max-width:56ch; margin-top:14px;
+  }
+
+  section{ margin-bottom: 60px; scroll-margin-top: 24px; }
+  section > h2{
+    font-size:24px;
+    padding-bottom:12px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom:20px;
+    display:flex; align-items:baseline; gap:10px;
+  }
+  section > h2 .num{
+    font-family:'IBM Plex Mono', monospace;
+    color: var(--teal);
+    font-size: 16px;
+    font-weight:500;
+  }
+  section p{ margin: 0 0 14px 0; }
+  section h3{ font-size:17px; margin-top:26px; }
+
+  /* code panel styled like a query console */
+  .query-panel{
+    background: var(--code-bg);
+    color: var(--code-text);
+    border-radius: var(--radius-card);
+    overflow:hidden;
+    margin: 18px 0;
+  }
+  .query-panel .bar{
+    display:flex; align-items:center; gap:8px;
+    padding:9px 14px;
+    background:#0B1B17;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:#6E857D;
+  }
+  .query-panel .bar .tab{
+    padding:4px 10px;
+    background:#14302A;
+    color:#CFE9E1;
+    border-radius:2px;
+  }
+  .query-panel pre{
+    margin:0; padding:18px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13.5px;
+    line-height:1.7;
+    overflow-x:auto;
+  }
+  .query-panel .c-kw{ color: var(--code-blue); }
+  .query-panel .c-fn{ color: var(--code-mint); }
+  .query-panel .c-str{ color: var(--code-amber); }
+  .query-panel .c-com{ color:#5E7069; font-style:italic; }
+
+  /* comparison table */
+  table.compare{
+    width:100%; border-collapse:collapse;
+    margin:18px 0;
+    background: var(--panel);
+    border: 1px solid var(--line);
+  }
+  table.compare th, table.compare td{
+    text-align:left;
+    padding:11px 14px;
+    border-bottom:1px solid var(--line);
+    font-size:14.5px;
+    vertical-align:top;
+  }
+  table.compare th{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:13px;
+    color: var(--ink-soft);
+    background:#E9EEE9;
+  }
+  table.compare tr:last-child td{ border-bottom:none; }
+  table.compare td:first-child{ color:var(--ink-soft); width:34%; }
+
+  /* callouts */
+  .callout{
+    border-left: 3px solid var(--teal);
+    background: #E7F1EE;
+    padding: 14px 18px;
+    margin: 18px 0;
+    font-size:14.5px;
+  }
+  .callout.warn{
+    border-left-color: var(--amber);
+    background: var(--amber-bg);
+  }
+  .callout .label{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600;
+    font-size:13px;
+    display:block;
+    margin-bottom:6px;
+    color: var(--teal-dark);
+  }
+  .callout.warn .label{ color: var(--amber); }
+
+  /* usage grid */
+  .usage-grid{
+    display:grid; grid-template-columns: 1fr 1fr; gap:14px;
+    margin:18px 0;
+  }
+  @media (max-width:640px){ .usage-grid{ grid-template-columns:1fr; } }
+  .usage-grid .item{
+    border:1px solid var(--line);
+    background:var(--panel);
+    padding:16px 18px;
+  }
+  .usage-grid .item h4{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:14.5px; margin:0 0 6px 0;
+  }
+  .usage-grid .item p{ font-size:13.5px; color:var(--ink-soft); margin:0; }
+
+  /* isolation demo */
+  .demo{
+    border:1px solid var(--line);
+    background: var(--panel);
+    margin: 20px 0;
+  }
+  .demo .demo-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 16px;
+    border-bottom:1px solid var(--line);
+  }
+  .demo .demo-head span{ font-family:'Space Grotesk', sans-serif; font-size:14px; }
+  .demo button{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    background: var(--teal);
+    color:#fff;
+    border:none;
+    padding:8px 14px;
+    border-radius:2px;
+    cursor:pointer;
+  }
+  .demo button:hover{ background: var(--teal-dark); }
+  .demo button:disabled{ background:#A9B8B2; cursor:default; }
+  .sessions{
+    display:grid; grid-template-columns:1fr 1fr;
+    gap:1px; background:var(--line);
+  }
+  @media (max-width:640px){ .sessions{ grid-template-columns:1fr; } }
+  .session{
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding:16px;
+    min-height: 150px;
+  }
+  .session .s-title{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px; color:#7C9089; margin-bottom:10px;
+  }
+  .session .s-line{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px; margin-bottom:6px;
+  }
+  .session .s-line.ok{ color: var(--code-mint); }
+  .session .s-line.err{ color: var(--code-amber); }
+  .session .s-cmd{ color:#CFE9E1; }
+
+  /* recap checklist */
+  .recap{
+    background: var(--code-bg);
+    color:#fff;
+    padding: 30px 34px;
+    margin-top: 10px;
+  }
+  .recap h2{ color:#fff; border-color:#294A42; }
+  .recap ul{ list-style:none; margin:0; padding:0; }
+  .recap li{
+    display:flex; gap:12px;
+    padding:10px 0;
+    border-bottom:1px solid #1D3931;
+    font-size:14.5px;
+    color:#D9E9E3;
+  }
+  .recap li:last-child{ border-bottom:none; }
+  .recap li .check{
+    color: var(--code-mint); flex:none; font-family:'IBM Plex Mono', monospace;
+  }
+
+  footer{
+    max-width:880px;
+    margin: 0 48px 60px;
+    color: var(--ink-soft);
+    font-size:12.5px;
+    font-family:'IBM Plex Mono', monospace;
+  }
+  @media (max-width: 860px){ footer{ margin: 0 22px 60px; } }
+  html.embedded .sidebar{display:none}
+  html.embedded .app{grid-template-columns:1fr}
+  html.embedded main{margin:0 auto}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <nav class="sidebar">
+    <div class="db-name"><span class="dot"></span> formation_mysql</div>
+    <div class="db-sub">tables_temporaires.sql</div>
+    <ul class="schema-tree" id="tree">
+      <li><a href="#definition"><span class="idx">01</span> Définition</a></li>
+      <li><a href="#cycle-de-vie"><span class="idx">02</span> Portée &amp; cycle de vie</a></li>
+      <li><a href="#comparaison"><span class="idx">03</span> Temporaire vs permanente</a></li>
+      <li><a href="#cas-usage"><span class="idx">04</span> Cas d'usage</a></li>
+      <li><a href="#pieges"><span class="idx">05</span> Pièges &amp; limites</a></li>
+      <li><a href="#implicites"><span class="idx">06</span> Temp. implicites du moteur</a></li>
+      <li><a href="#recap"><span class="idx">07</span> À retenir</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <div class="hero">
+      <div class="eyebrow-line">CREATE TEMPORARY TABLE ...</div>
+      <h1>Les tables temporaires en MySQL</h1>
+      <p class="lede">Un support de révision pour les stagiaires : ce qu'est une table temporaire, comment elle se comporte pendant une session, et les pièges classiques à éviter en TP comme en entretien technique.</p>
+    </div>
+
+    <section id="definition">
+      <h2><span class="num">01</span> Définition</h2>
+      <p>Une table temporaire est une table créée avec le mot-clé <code>TEMPORARY</code>. Elle se comporte comme une table normale (on peut y insérer, la mettre à jour, la joindre, l'indexer), mais elle n'existe que pour la durée de la connexion qui l'a créée.</p>
+
+      <div class="query-panel">
+        <div class="bar"><span class="tab">session_A</span></div>
+        <pre><span class="c-kw">CREATE TEMPORARY TABLE</span> resultats_partiels (
+    id <span class="c-kw">INT</span> <span class="c-kw">PRIMARY KEY</span>,
+    total <span class="c-kw">DECIMAL</span>(10,2)
+);
+
+<span class="c-kw">INSERT INTO</span> resultats_partiels <span class="c-kw">VALUES</span> (1, 450.00);
+<span class="c-kw">SELECT</span> * <span class="c-kw">FROM</span> resultats_partiels;</pre>
+      </div>
+
+      <p>Elle est visible uniquement dans la session qui l'a créée — aucune autre connexion, même avec le même compte MySQL, ne peut la voir ni y accéder.</p>
+    </section>
+
+    <section id="cycle-de-vie">
+      <h2><span class="num">02</span> Portée et cycle de vie</h2>
+      <p>Trois règles à retenir sur son cycle de vie :</p>
+      <div class="usage-grid">
+        <div class="item">
+          <h4>Isolée par connexion</h4>
+          <p>Deux sessions peuvent créer une table temporaire portant le même nom sans jamais entrer en conflit.</p>
+        </div>
+        <div class="item">
+          <h4>Supprimée automatiquement</h4>
+          <p>Dès que la connexion se ferme, MySQL détruit la table — pas besoin de nettoyage manuel.</p>
+        </div>
+        <div class="item">
+          <h4>Suppression explicite possible</h4>
+          <p><code>DROP TEMPORARY TABLE nom;</code> permet de la supprimer avant la fin de session.</p>
+        </div>
+        <div class="item">
+          <h4>Masque une table permanente</h4>
+          <p>Si une table permanente porte déjà ce nom, la version temporaire prend le dessus pendant la session.</p>
+        </div>
+      </div>
+
+      <h3>Démonstration — isolation entre deux sessions</h3>
+      <p>Deux stagiaires ouvrent chacun leur propre connexion MySQL. L'un crée une table temporaire ; l'autre tente de la lire.</p>
+
+      <div class="demo">
+        <div class="demo-head">
+          <span>Isolation d'une table temporaire entre deux sessions</span>
+          <button id="runDemo">Exécuter la démo</button>
+        </div>
+        <div class="sessions">
+          <div class="session">
+            <div class="s-title">Session A (stagiaire 1)</div>
+            <div id="sessA"></div>
+          </div>
+          <div class="session">
+            <div class="s-title">Session B (stagiaire 2)</div>
+            <div id="sessB"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="comparaison">
+      <h2><span class="num">03</span> Temporaire vs permanente</h2>
+      <table class="compare">
+        <tr><th>Aspect</th><th>Table temporaire</th><th>Table permanente</th></tr>
+        <tr><td>Visibilité</td><td>Uniquement la session qui l'a créée</td><td>Toutes les sessions autorisées</td></tr>
+        <tr><td>Durée de vie</td><td>Jusqu'à la fin de la connexion (ou <code>DROP</code> manuel)</td><td>Persiste jusqu'à suppression explicite</td></tr>
+        <tr><td><code>SHOW TABLES</code></td><td>N'apparaît pas dans la liste</td><td>Apparaît normalement</td></tr>
+        <tr><td>Réplication</td><td>Généralement non répliquée vers les esclaves</td><td>Répliquée selon la configuration</td></tr>
+        <tr><td>Nom en doublon</td><td>Peut réutiliser le nom d'une table permanente existante</td><td>Le nom doit être unique dans la base</td></tr>
+      </table>
+    </section>
+
+    <section id="cas-usage">
+      <h2><span class="num">04</span> Cas d'usage typiques</h2>
+      <p>En pratique, on utilise une table temporaire pour découper un problème complexe en étapes plus simples :</p>
+      <div class="usage-grid">
+        <div class="item">
+          <h4>Résultats intermédiaires</h4>
+          <p>Stocker le résultat d'une sous-requête coûteuse pour la réutiliser plusieurs fois sans la recalculer.</p>
+        </div>
+        <div class="item">
+          <h4>Simplifier une procédure stockée</h4>
+          <p>Décomposer un traitement en plusieurs étapes lisibles au lieu d'une seule requête imbriquée illisible.</p>
+        </div>
+        <div class="item">
+          <h4>Agrégations en plusieurs passes</h4>
+          <p>Calculer un premier regroupement, puis effectuer un second traitement sur ce résultat.</p>
+        </div>
+        <div class="item">
+          <h4>Import / transformation de données</h4>
+          <p>Charger des données brutes, les nettoyer, puis alimenter la table définitive avec des données validées.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="pieges">
+      <h2><span class="num">05</span> Pièges et limites à connaître</h2>
+
+      <div class="callout warn">
+        <span class="label">Invisible dans SHOW TABLES</span>
+        Une table temporaire n'apparaît pas avec <code>SHOW TABLES</code>. Un stagiaire qui cherche « pourquoi ma table n'existe pas » alors qu'il vient de la créer confond souvent ce point.
+      </div>
+
+      <div class="callout warn">
+        <span class="label">Stockage et mémoire</span>
+        Une table temporaire trop volumineuse peut basculer du moteur mémoire vers le disque, selon <code>tmp_table_size</code> et <code>max_heap_table_size</code>. Elle n'est pas gratuite en performance.
+      </div>
+
+      <div class="callout warn">
+        <span class="label">Une seule référence par requête (historique)</span>
+        Sur des versions plus anciennes de MySQL, on ne pouvait pas référencer une même table temporaire deux fois dans la même requête (par exemple une auto-jointure). Bon réflexe : vérifier la version utilisée en TP avant d'écrire ce type de requête.
+      </div>
+
+      <div class="callout warn">
+        <span class="label">Portée oubliée en connexion poolée</span>
+        Avec un pool de connexions (applications web, ORM), la « session » peut changer d'une requête à l'autre : une table temporaire créée sur une connexion peut disparaître avant la requête suivante si le pool réattribue une autre connexion.
+      </div>
+    </section>
+
+    <section id="implicites">
+      <h2><span class="num">06</span> Ne pas confondre avec les tables temporaires internes</h2>
+      <p>MySQL crée lui-même, en interne, des tables temporaires invisibles pour exécuter certaines requêtes complexes — sans aucun lien avec <code>CREATE TEMPORARY TABLE</code>.</p>
+      <div class="query-panel">
+        <div class="bar"><span class="tab">moteur MySQL (interne)</span></div>
+        <pre><span class="c-com">-- Ces opérations peuvent forcer la création
+-- d'une table temporaire interne :</span>
+<span class="c-kw">SELECT</span> categorie, <span class="c-fn">COUNT</span>(*)
+<span class="c-kw">FROM</span> produits
+<span class="c-kw">GROUP BY</span> categorie
+<span class="c-kw">ORDER BY</span> <span class="c-fn">COUNT</span>(*) <span class="c-kw">DESC</span>;
+
+<span class="c-kw">SELECT DISTINCT</span> ville <span class="c-kw">FROM</span> clients;
+
+(<span class="c-kw">SELECT</span> id <span class="c-kw">FROM</span> a) <span class="c-kw">UNION</span> (<span class="c-kw">SELECT</span> id <span class="c-kw">FROM</span> b);</pre>
+      </div>
+      <p>On peut observer ce comportement avec <code>EXPLAIN</code>, qui affiche <span class="mono">Using temporary</span> dans la colonne Extra. Le stagiaire n'écrit jamais ce type de table lui-même : c'est l'optimiseur MySQL qui décide.</p>
+    </section>
+
+    <section id="recap" class="recap">
+      <h2><span class="num">07</span> Ce qu'il faut absolument retenir</h2>
+      <ul>
+        <li><span class="check">✓</span> Une table temporaire se crée avec <code>CREATE TEMPORARY TABLE</code> et se comporte comme une table normale.</li>
+        <li><span class="check">✓</span> Elle n'est visible que dans la session qui l'a créée, jamais dans <code>SHOW TABLES</code>.</li>
+        <li><span class="check">✓</span> Elle disparaît automatiquement à la fermeture de la connexion, ou avec <code>DROP TEMPORARY TABLE</code>.</li>
+        <li><span class="check">✓</span> Elle peut porter le même nom qu'une table permanente : elle la masque pendant la session.</li>
+        <li><span class="check">✓</span> Elle sert à découper un traitement complexe en étapes intermédiaires lisibles.</li>
+        <li><span class="check">✓</span> Elle est distincte des tables temporaires internes que MySQL crée seul pour GROUP BY, DISTINCT ou UNION.</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+<script>
+  // active link highlighting
+  const links = document.querySelectorAll('.schema-tree a');
+  const sections = Array.from(links).map(l => document.querySelector(l.getAttribute('href')));
+  function setActive(){
+    let idx = 0;
+    const y = window.scrollY + 120;
+    sections.forEach((s, i) => { if (s && s.offsetTop <= y) idx = i; });
+    links.forEach((l, i) => l.classList.toggle('active', i === idx));
+  }
+  document.addEventListener('scroll', setActive);
+  setActive();
+
+  // isolation demo
+  const btn = document.getElementById('runDemo');
+  const a = document.getElementById('sessA');
+  const b = document.getElementById('sessB');
+  btn.addEventListener('click', () => {
+    btn.disabled = true;
+    a.innerHTML = '';
+    b.innerHTML = '';
+    const stepsA = [
+      { html: '<span class="s-cmd">mysql&gt;</span> CREATE TEMPORARY TABLE stock_tmp (...);', cls: '' },
+      { html: 'Query OK, 0 rows affected', cls: 'ok' },
+      { html: '<span class="s-cmd">mysql&gt;</span> SELECT * FROM stock_tmp;', cls: '' },
+      { html: '1 row in set', cls: 'ok' }
+    ];
+    const stepsB = [
+      { html: '<span class="s-cmd">mysql&gt;</span> SELECT * FROM stock_tmp;', cls: '' },
+      { html: "ERROR 1146 (42S02): Table 'stock_tmp' doesn't exist", cls: 'err' }
+    ];
+    let i = 0;
+    const timer = setInterval(() => {
+      if (i < stepsA.length){
+        const d = document.createElement('div');
+        d.className = 's-line ' + stepsA[i].cls;
+        d.innerHTML = stepsA[i].html;
+        a.appendChild(d);
+      }
+      if (i < stepsB.length){
+        const d = document.createElement('div');
+        d.className = 's-line ' + stepsB[i].cls;
+        d.innerHTML = stepsB[i].html;
+        b.appendChild(d);
+      }
+      i++;
+      if (i > Math.max(stepsA.length, stepsB.length)){
+        clearInterval(timer);
+        btn.disabled = false;
+      }
+    }, 650);
+  });
+</script>
+
+</body>
+</html>

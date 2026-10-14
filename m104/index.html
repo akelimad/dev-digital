@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>M104 – Sites web statiques</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#f4f6fa;--card:#fff;--ink:#15203b;--mut:#5b6784;--line:#dde3ee;--acc:#0b6e6e;--side:#101a33;--sidei:#b9c4de;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c1224;--card:#141c34;--ink:#e6ebf7;--mut:#93a0c0;--line:#243052;--acc:#3fc1b5;--side:#080d1c}}
+:root[data-theme="dark"]{--bg:#0c1224;--card:#141c34;--ink:#e6ebf7;--mut:#93a0c0;--line:#243052;--acc:#3fc1b5;--side:#080d1c}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "IBM Plex Sans",system-ui,sans-serif}
+nav{position:fixed;top:0;left:0;bottom:0;width:272px;background:var(--side);overflow-y:auto;padding:calc(18px + env(safe-area-inset-top,0px)) 12px 24px;z-index:5;transition:transform .2s}
+nav h2{color:#fff;font-size:15px;margin:0 8px 14px;line-height:1.3}
+nav a{display:block;color:var(--sidei);text-decoration:none;padding:7px 10px;border-radius:6px;font-size:14px}
+nav a:hover{background:#ffffff14}nav a.on{background:var(--acc);color:#fff}
+main{margin-left:272px;max-width:900px;padding:28px 28px 80px}
+#bm{display:none;position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:10px;z-index:6;background:var(--acc);color:#fff;border:0;border-radius:8px;padding:8px 12px;font:inherit}
+h1{font-size:30px;margin:0 0 6px}h2.s{font-size:24px;margin:0 0 6px;padding-top:8px}
+.lead{color:var(--mut);margin:0 0 20px}
+section{display:none}section.show{display:block}
+.it{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:0 0 18px}
+.it h3{margin:0 0 8px;font:500 18px ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono","Courier New",monospace;color:var(--acc)}
+.it p{margin:4px 0}.it b{font-weight:600}
+.cb{position:relative;margin:10px 0}
+.cb pre{margin:0;background:#0f172a;color:#e2e8f0;border-radius:8px;padding:14px;overflow-x:auto;font:13.5px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono","Courier New",monospace}
+.cb button{position:absolute;top:6px;right:6px;background:#334155;color:#e2e8f0;border:0;border-radius:6px;padding:3px 9px;font-size:12px;cursor:pointer}
+.tg{color:#7dd3fc}.at{color:#fcd34d}.st{color:#86efac}.cm{color:#64748b;font-style:italic}.sl{color:#f0abfc}.pr{color:#7dd3fc}.nu{color:#fdba74}
+.res{font-size:12px;color:var(--mut);margin:12px 0 4px}
+iframe{width:100%;border:1px solid var(--line);border-radius:8px;background:#fff;min-height:60px;display:block}
+.note{background:#0b6e6e18;border-left:3px solid var(--acc);padding:8px 12px;border-radius:4px;margin:10px 0;font-size:14.5px}
+table.ob{width:100%;border-collapse:collapse;font-size:14.5px;display:block;overflow-x:auto}.ob th,.ob td{border:1px solid var(--line);padding:7px 10px;text-align:left}.ob code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono","Courier New",monospace;font-size:13px}
+@media (max-width:860px){nav{transform:translateX(-100%)}nav.open{transform:none}main{margin-left:0;padding:60px 16px 60px}#bm{display:block}}
+</style>
+</head>
+<body>
+<button id="bm" onclick="document.querySelector('nav').classList.toggle('open')">Menu</button>
+<nav><h2>M104 · Développer des sites web statiques</h2><div id="menu"></div></nav>
+<main id="app"></main>
+<script>
+const D=[
+{id:'sq',t:'1. Squelette HTML',l:'Toute page HTML5 suit la même structure. Règles du W3C : balises en minuscules, bien imbriquées, toujours fermées, valeurs d’attributs entre guillemets droits ("…").',
+items:[
+{t:'<!DOCTYPE html> + <html> + <head> + <body>',r:'Indique au navigateur que la page est en HTML5 et sépare les infos techniques (head) du contenu visible (body).',u:'Première chose écrite dans chaque fichier .html.',c:`<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Ma première page">
+  <title>Ma page<\/title>
+<\/head>
+<body>
+  <h1>Bonjour<\/h1>
+  <p>Ma première page web.<\/p>
+<\/body>
+<\/html>`},
+{t:'<meta> et <title>',r:'meta charset gère les accents ; viewport rend la page responsive ; title s’affiche dans l’onglet et dans Google.',u:'Toujours dans <head>. Pas de balise de fermeture pour <meta>.',c:`<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boutique – Accueil<\/title>`,n:1}]},
+{id:'tx',t:'2. Texte',l:'Balises de contenu : titres, paragraphes, mise en valeur.',items:[
+{t:'<h1> à <h6>',r:'Titres hiérarchiques (h1 = le plus important).',u:'Un seul h1 par page ; h2, h3… pour les sous-parties (important pour le SEO et l’accessibilité).',c:`<h1>Mon site<\/h1>
+<h2>Section<\/h2>
+<h3>Sous-section<\/h3>`},
+{t:'<p>, <br>, <hr>',r:'p = paragraphe ; br = retour à la ligne ; hr = ligne de séparation thématique.',u:'p pour tout texte courant. br seulement dans une adresse ou un poème, jamais pour espacer (utiliser le CSS).',c:`<p>Premier paragraphe.<\/p>
+<p>Ligne 1<br>Ligne 2<\/p>
+<hr>
+<p>Après la séparation.<\/p>`},
+{t:'<strong>, <em>, <mark>, <small>, <sub>, <sup>',r:'strong = très important (gras) ; em = accentué (italique) ; mark = surligné ; small = note ; sub/sup = indice/exposant.',u:'Remplacent <b> et <i> quand le sens compte. H<sub>2<\/sub>O, x<sup>2<\/sup>.',c:`<p>Texte <strong>important<\/strong>, <em>accentué<\/em>
+et <mark>surligné<\/mark>.<\/p>
+<p>H<sub>2<\/sub>O et x<sup>2<\/sup> <small>(note)<\/small><\/p>`},
+{t:'<pre>, <code>, <blockquote>, <abbr>',r:'pre conserve espaces et sauts de ligne ; code = extrait de code ; blockquote = citation ; abbr = abréviation avec infobulle.',u:'Cours de programmation, citations, sigles (survoler OFPPT).',c:`<pre><code>let x = 5;
+console.log(x);<\/code><\/pre>
+<blockquote>Citation d'un auteur<\/blockquote>
+<abbr title="Office de la Formation Professionnelle">OFPPT<\/abbr>`}]},
+{id:'ls',t:'3. Listes',l:'Trois types de listes.',items:[
+{t:'<ul>, <ol>, <li>',r:'ul = liste à puces ; ol = liste numérotée ; li = élément.',u:'Menus de navigation (ul + liens), étapes (ol), énumérations.',c:`<ul>
+  <li>HTML<\/li>
+  <li>CSS<\/li>
+<\/ul>
+<ol type="1" start="1">
+  <li>Installer VS Code<\/li>
+  <li>Créer index.html<\/li>
+<\/ol>`},
+{t:'<dl>, <dt>, <dd>',r:'Liste de définitions : terme (dt) + description (dd).',u:'Glossaires, fiches techniques.',c:`<dl>
+  <dt>HTML<\/dt><dd>Langage de balisage<\/dd>
+  <dt>CSS<\/dt><dd>Langage de mise en forme<\/dd>
+<\/dl>`}]},
+{id:'ln',t:'4. Liens',l:'L’hyperlien est le cœur du web.',items:[
+{t:'<a href="…">',r:'Crée un lien vers une page, un fichier, une ancre, un mail ou un téléphone.',u:'target="_blank" + rel="noopener" pour ouvrir un site externe dans un nouvel onglet.',c:`<a href="page2.html">Page 2<\/a>
+<a href="https://www.ofppt.ma" target="_blank" rel="noopener">OFPPT<\/a>
+<a href="#bas">Aller en bas<\/a>
+<a href="mailto:contact@exemple.ma">Écrire<\/a>
+<a href="tel:+212600000000">Appeler<\/a>
+<p id="bas">Ancre ici.<\/p>`}]},
+{id:'mm',t:'5. Images, audio, vidéo',l:'Contenu multimédia natif HTML5 (plus de plugin Flash ni <embed>).',items:[
+{t:'<img> et <figure>',r:'Affiche une image. alt est obligatoire (accessibilité, image cassée, SEO).',u:'figure + figcaption pour une image légendée. width/height évitent les sauts de mise en page.',c:`<figure>
+  <img src="https://picsum.photos/id/10/200/120" alt="Forêt" width="200" height="120">
+  <figcaption>Une forêt<\/figcaption>
+<\/figure>`},
+{t:'<audio> et <video>',r:'Lecteurs intégrés. L’attribut controls affiche les boutons.',u:'Prévoir un texte de secours à l’intérieur ; préférer mp4 (vidéo) et mp3 (audio).',c:`<audio controls src="son.mp3">Audio non supporté<\/audio>
+<video controls width="300" poster="affiche.jpg">
+  <source src="video.mp4" type="video/mp4">
+  Vidéo non supportée
+<\/video>`,n:1}]},
+{id:'tb',t:'6. Tableaux',l:'À utiliser pour des données, jamais pour la mise en page.',items:[
+{t:'<table>, <thead>, <tbody>, <tr>, <th>, <td>',r:'table = tableau ; tr = ligne ; th = cellule d’en-tête ; td = cellule ; thead/tbody structurent.',u:'Listes d’employés, emplois du temps. colspan/rowspan fusionnent des cellules. La mise en forme (bordures, alignement) se fait en CSS, pas avec border= ou align=.',c:`<style>table{border-collapse:collapse}th,td{border:1px solid #888;padding:6px 12px}<\/style>
+<table>
+  <caption>Employés<\/caption>
+  <thead><tr><th>Nom<\/th><th>Poste<\/th><\/tr><\/thead>
+  <tbody>
+    <tr><td>Sara<\/td><td>Développeuse<\/td><\/tr>
+    <tr><td colspan="2">Total : 1<\/td><\/tr>
+  <\/tbody>
+<\/table>`}]},
+{id:'se',t:'7. Balises sémantiques',l:'Elles donnent du sens à la page (SEO, lecteurs d’écran) au lieu d’empiler des <div>.',items:[
+{t:'<header>, <nav>, <main>, <section>, <article>, <aside>, <footer>',r:'header = en-tête ; nav = menu ; main = contenu principal (un seul) ; section = bloc thématique ; article = contenu autonome ; aside = contenu annexe ; footer = pied de page.',u:'Structure de presque tous les sites modernes.',c:`<header><h1>Mon blog<\/h1>
+  <nav><a href="#">Accueil<\/a> <a href="#">Contact<\/a><\/nav>
+<\/header>
+<main>
+  <article><h2>Article 1<\/h2><p>Texte…<\/p><\/article>
+  <aside>Publicité<\/aside>
+<\/main>
+<footer>© 2026<\/footer>`},
+{t:'<div> et <span>',r:'Conteneurs neutres : div = bloc, span = en ligne.',u:'Seulement quand aucune balise sémantique ne convient, pour regrouper et styliser avec CSS.',c:`<div class="carte">
+  <p>Prix : <span style="color:red">99 DH<\/span><\/p>
+<\/div>`}]},
+{id:'fo',t:'8. Formulaires',l:'Collecter les données de l’utilisateur.',items:[
+{t:'<form>, <label>, <input>, <button>',r:'form regroupe les champs et envoie les données (action, method) ; label décrit un champ (cliquable avec for/id) ; input = saisie ; button = envoi.',u:'Connexion, inscription, contact. method="post" pour les données sensibles.',c:`<form action="/envoyer" method="post">
+  <label for="nom">Nom :<\/label>
+  <input type="text" id="nom" name="nom" placeholder="Votre nom" required>
+  <button type="submit">Envoyer<\/button>
+<\/form>`},
+{t:'Types de <input> HTML5',r:'Le type active clavier adapté et contrôle automatique.',u:'email, password, number, date, tel, url, color, range, file, search.',c:`<input type="email" placeholder="email"><br>
+<input type="password" placeholder="mot de passe"><br>
+<input type="number" min="0" max="10"><br>
+<input type="date"> <input type="color"> <input type="range">`},
+{t:'<textarea>, <select>, radio, checkbox',r:'textarea = texte long ; select/option = liste déroulante ; radio = un seul choix (même name) ; checkbox = choix multiples.',u:'Questionnaires, préférences.',c:`<textarea rows="2" cols="25" placeholder="Message"><\/textarea><br>
+<select name="ville"><option>Rabat<\/option><option>Casablanca<\/option><\/select><br>
+<input type="radio" name="s" id="m"><label for="m">Homme<\/label>
+<input type="radio" name="s" id="f"><label for="f">Femme<\/label><br>
+<input type="checkbox" id="c"><label for="c">J'accepte<\/label>`},
+{t:'Validation : required, pattern, minlength, maxlength',r:'Le navigateur bloque l’envoi si les données sont invalides, sans JavaScript.',u:'pattern prend une expression régulière ; novalidate sur le form désactive la validation.',c:`<form>
+  <input type="text" required minlength="3" maxlength="10" placeholder="3 à 10 car.">
+  <input type="text" pattern="[0-9]{10}" title="10 chiffres" placeholder="Téléphone">
+  <button>Valider<\/button>
+<\/form>`}]},
+{id:'cs',t:'9. CSS : bases',l:'Le CSS sépare la forme du contenu. Syntaxe : sélecteur { propriété: valeur; }',items:[
+{t:'Intégrer le CSS',r:'Trois façons : fichier externe (recommandé), balise <style>, attribut style (inline).',u:'Fichier .css lié avec <link> : réutilisable sur toutes les pages. Éviter l’inline.',c:`<!\-- 1. Externe (recommandé), dans <head> -->
+<link rel="stylesheet" href="style.css">
+
+<!\-- 2. Interne -->
+<style>
+  p { color: teal; }
+<\/style>
+
+<!\-- 3. Inline -->
+<p style="color: teal;">Texte<\/p>`,n:1},
+{t:'Sélecteurs : élément, .classe, #id, :hover',r:'Choisissent les éléments à styliser. Classe réutilisable (.), id unique (#), pseudo-classe selon l’état.',u:'Le plus courant : les classes.',c:`<style>
+h2 { color: navy; }
+.alerte { background: gold; padding: 8px; }
+#titre { text-decoration: underline; }
+a:hover { color: crimson; }
+<\/style>
+<h2>Élément<\/h2>
+<p class="alerte">Classe<\/p>
+<p id="titre">Id<\/p>
+<a href="#">Survole-moi<\/a>`},
+{t:'Couleurs, unités et polices',r:'Couleurs : nom, #hex, rgb(), hsl(). Unités : px (fixe), % , rem/em (relatif), vw/vh (écran).',u:'rem pour les tailles de texte ; font-family avec une police de secours.',c:`<style>
+p {
+  color: #0b6e6e;
+  background: rgb(240, 240, 255);
+  font-family: Arial, sans-serif;
+  font-size: 1.2rem;
+  text-align: center;
+}
+<\/style>
+<p>Texte centré<\/p>`},
+{t:'Modèle de boîte : margin, border, padding',r:'Chaque élément est une boîte : contenu, padding (intérieur), border, margin (extérieur).',u:'box-sizing: border-box inclut padding et border dans la largeur.',c:`<style>
+.box {
+  width: 200px;
+  padding: 16px;
+  border: 3px solid teal;
+  margin: 12px auto;
+  box-sizing: border-box;
+  border-radius: 8px;
+}
+<\/style>
+<div class="box">Ma boîte<\/div>`}]},
+{id:'po',t:'10. Positionnement',l:'Disposer les éléments dans la page.',items:[
+{t:'display: flex (Flexbox)',r:'Aligne les éléments sur une ligne ou une colonne, avec espacement et alignement simples.',u:'Menus, cartes côte à côte, centrage. Remplace les anciens float et tableaux de mise en page.',c:`<style>
+.row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.row div { background: #0b6e6e; color: #fff; padding: 12px; }
+<\/style>
+<div class="row">
+  <div>1<\/div>
+  <div>2<\/div>
+  <div>3<\/div>
+<\/div>`},
+{t:'display: grid',r:'Dispose les éléments en lignes et colonnes (mise en page 2D).',u:'Galeries, structure globale de page.',c:`<style>
+.g { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.g div { background: #7c3aed; color: #fff; padding: 12px; }
+<\/style>
+<div class="g">
+  <div>1<\/div>
+  <div>2<\/div>
+  <div>3<\/div>
+  <div>4<\/div>
+<\/div>`},
+{t:'position: relative / absolute / fixed / sticky',r:'Retire ou décale un élément du flux normal.',u:'Badges (absolute dans un parent relative), menu collé en haut (sticky/fixed).',c:`<style>
+.p { position: relative; background: #eee; height: 70px; }
+.b { position: absolute; top: 6px; right: 6px; background: crimson; color: #fff; padding: 2px 8px; }
+<\/style>
+<div class="p">
+  Carte
+  <span class="b">Nouveau<\/span>
+<\/div>`}]},
+{id:'rs',t:'11. Responsive',l:'Adapter la page à l’écran (mobile, tablette, PC).',items:[
+{t:'@media (max-width: …)',r:'Applique des styles seulement si l’écran respecte une condition. Nécessite la balise meta viewport.',u:'Approche mobile-first : on style d’abord le mobile, puis on ajoute min-width.',c:`<style>
+.c { background: #0b6e6e; color: #fff; padding: 12px; }
+@media (max-width: 500px) {
+  .c { background: crimson; }
+}
+<\/style>
+<div class="c">Réduis la fenêtre : je deviens rouge sous 500px<\/div>`}]},
+{id:'an',t:'12. Animations',l:'Transitions et animations en CSS pur.',items:[
+{t:'transition et @keyframes',r:'transition anime un changement d’état ; @keyframes décrit une animation en plusieurs étapes.',u:'Effets au survol des boutons ; animation: nom durée répétition.',c:`<style>
+.btn { background: teal; color: #fff; padding: 10px 18px; border: 0; transition: transform .3s; }
+.btn:hover { transform: scale(1.15); }
+.pulse { width: 40px; height: 40px; background: gold; animation: p 1s infinite alternate; }
+@keyframes p { from { transform: scale(1); } to { transform: scale(1.5); } }
+<\/style>
+<button class="btn">Survole-moi<\/button>
+<div class="pulse"><\/div>`}]},
+{id:'bs',t:'13. Bootstrap',l:'Framework CSS : composants prêts à l’emploi. Version actuelle : Bootstrap 5.3 (sans jQuery). Le résultat visuel n’est pas affiché ici : copie le code dans un fichier .html.',items:[
+{t:'Intégration par CDN',r:'Charge Bootstrap sans rien installer.',u:'À placer dans la page ; le JS (bundle) sert aux composants dynamiques (menu burger, modale).',c:`<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<\script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"><\/script>`,n:1},
+{t:'Grille : .container, .row, .col-*',r:'Grille de 12 colonnes qui s’adapte à l’écran (col-sm, col-md, col-lg).',u:'Mise en page responsive sans écrire de media query.',c:`<div class="container">
+  <div class="row">
+    <div class="col-12 col-md-6">Colonne 1<\/div>
+    <div class="col-12 col-md-6">Colonne 2<\/div>
+  <\/div>
+<\/div>`,n:1},
+{t:'Composants : .btn, .card, .navbar, .alert',r:'Classes toutes faites pour boutons, cartes, barres de navigation, alertes.',u:'Prototypes rapides et interfaces homogènes.',c:`<button class="btn btn-primary">Valider<\/button>
+<div class="card" style="width: 18rem;">
+  <div class="card-body">
+    <h5 class="card-title">Titre<\/h5>
+    <a href="#" class="btn btn-success">Voir<\/a>
+  <\/div>
+<\/div>
+<div class="alert alert-warning">Attention !<\/div>`,n:1}]},
+{id:'he',t:'14. Hébergement',l:'Mettre le site en ligne.',items:[
+{t:'Intranet et en ligne',r:'Intranet : serveur local (ex. XAMPP, dossier htdocs). En ligne : hébergeur + nom de domaine, envoi des fichiers par FTP (FileZilla) ou par Git.',u:'Pour un site statique, GitHub Pages ou Netlify sont gratuits et simples.',c:`# Publier avec GitHub Pages
+git init
+git add .
+git commit -m "Mon site"
+git remote add origin https://github.com/UTILISATEUR/mon-site.git
+git push -u origin main`,n:1}]},
+{id:'ob',t:'Balises obsolètes',l:'Présentes dans d’anciens cours, à ne plus utiliser. Ce sont des éléments HTML5 obsolètes : le CSS fait ce travail.',items:[]}
+];
+D.find(s=>s.id==='tb').items=[{"t": "<table>, <tr>, <th>, <td>", "r": "table = tableau ; tr (table row) = une ligne ; th (table header) = cellule d’en-tête, en gras et centrée ; td (table data) = cellule de données. Ici : 3 lignes (<tr>) de 4 colonnes chacune.", "u": "On écrit le tableau ligne par ligne : chaque <tr> contient autant de cellules que de colonnes. Un tableau sert à afficher des données, jamais à placer la mise en page. Sans CSS, un tableau n’a pas de bordures : l’aperçu en ajoute pour la lisibilité, la mise en forme viendra avec le CSS.", "c": "<table>\n  <tr>\n    <th>Nom<\/th>\n    <th>Prénom<\/th>\n    <th>Ville<\/th>\n    <th>Âge<\/th>\n  <\/tr>\n  <tr>\n    <td>Alami<\/td>\n    <td>Sara<\/td>\n    <td>Rabat<\/td>\n    <td>20<\/td>\n  <\/tr>\n  <tr>\n    <td>Benani<\/td>\n    <td>Omar<\/td>\n    <td>Salé<\/td>\n    <td>22<\/td>\n  <\/tr>\n<\/table>"}, {"t": "colspan et rowspan", "r": "colspan=\"n\" fait occuper n colonnes à une cellule ; rowspan=\"n\" lui fait occuper n lignes. Les cellules absorbées ne s’écrivent plus.", "u": "Le tableau garde 4 colonnes : « HTML (4h) » a rowspan=\"2\", donc la ligne 3 n’a que 3 cellules ; « Pause déjeuner » a colspan=\"3\", donc sa ligne n’a que 2 cellules (1 + 3 = 4) ; « Projet » a colspan=\"2\" (1 + 2 + 1 = 4).", "c": "<table>\n  <tr>\n    <th>Horaire<\/th>\n    <th>Lundi<\/th>\n    <th>Mardi<\/th>\n    <th>Mercredi<\/th>\n  <\/tr>\n  <tr>\n    <td>08h–10h<\/td>\n    <td rowspan=\"2\">HTML (4h)<\/td>\n    <td>CSS<\/td>\n    <td>Bootstrap<\/td>\n  <\/tr>\n  <tr>\n    <td>10h–12h<\/td>\n    <td>JavaScript<\/td>\n    <td>TP<\/td>\n  <\/tr>\n  <tr>\n    <td>12h–14h<\/td>\n    <td colspan=\"3\">Pause déjeuner<\/td>\n  <\/tr>\n  <tr>\n    <td>14h–16h<\/td>\n    <td colspan=\"2\">Projet<\/td>\n    <td>Évaluation<\/td>\n  <\/tr>\n<\/table>"}];D.splice(D.findIndex(s=>s.id==='fo'),1,...([{"id": "fo", "t": "8.1 Formulaires : saisie", "l": "Tout formulaire commence par <form>. Chaque champ envoyé doit avoir un attribut name.", "items": [{"t": "<form>, <label>, <input>, <button>", "r": "form regroupe les champs et envoie les données (action = destination, method = get ou post) ; label décrit un champ ; input = saisie ; button = envoi.", "u": "Connexion, inscription, contact. method=\"post\" pour les données sensibles. Chaque champ envoyé doit avoir un name.", "c": "<form action=\"/envoyer\" method=\"post\">\n  <label for=\"nom\">Nom :<\/label>\n  <input type=\"text\" id=\"nom\" name=\"nom\" placeholder=\"Votre nom\" required>\n  <button type=\"submit\">Envoyer<\/button>\n<\/form>"}, {"t": "<input type=\"text\">", "r": "Champ de texte sur une ligne. L’attribut name est le nom sous lequel la valeur est envoyée au serveur.", "c": "<label>Nom :<\/label>\n<input type=\"text\" name=\"nom\">"}, {"t": "<input type=\"password\">", "r": "Masque les caractères saisis.", "c": "<label>Mot de passe :<\/label>\n<input type=\"password\" name=\"motdepasse\">"}, {"t": "<textarea>", "r": "Zone de texte sur plusieurs lignes (rows = hauteur).", "c": "<label>Message :<\/label>\n<textarea name=\"message\" rows=\"3\"><\/textarea>"}, {"t": "<input type=\"hidden\">", "r": "Champ invisible : transmet une valeur au serveur sans que l’utilisateur la voie. Rien ne s’affiche dans le résultat.", "c": "<input type=\"hidden\" name=\"nameofinput\" value=\"10\" >", "n": 1}]}, {"id": "fc", "t": "8.2 Formulaires : choix", "l": "Cases à cocher, boutons radio et listes déroulantes.", "items": [{"t": "<input type=\"checkbox\">", "r": "Plusieurs choix possibles. Le name avec [] regroupe les valeurs côté serveur (PHP).", "c": "<label>Choix multiple :<\/label><br>\n<input type=\"checkbox\" name=\"formations[]\" value=\"HTML\"> HTML\n<input type=\"checkbox\" name=\"formations[]\" value=\"CSS\"> CSS\n<input type=\"checkbox\" name=\"formations[]\" value=\"JavaScript\"> JavaScript"}, {"t": "<input type=\"radio\">", "r": "Un seul choix : tous les boutons du groupe partagent le même name.", "c": "<label>Genre :<\/label>\n<input type=\"radio\" name=\"genre\" value=\"H\"> Homme\n<input type=\"radio\" name=\"genre\" value=\"F\"> Femme"}, {"t": "<select> et <option>", "r": "Liste déroulante : la value est envoyée, le texte de l’option est affiché.", "c": "<label>Liste de pays :<\/label>\n<select name=\"pays\">\n    <option value=\"\">Choisissez<\/option>\n    <option value=\"MA\">Maroc<\/option>\n    <option value=\"FR\">France<\/option>\n    <option value=\"CA\">Canada<\/option>\n<\/select>"}]}, {"id": "fh", "t": "8.3 Types HTML5 de input", "l": "Le type active un clavier adapté. Pour email, url et number, le contrôle se fait à l’envoi : le champ doit être dans un &lt;form&gt; avec un bouton submit.", "items": [{"t": "type=\"search\"", "r": "Champ de recherche.", "c": "<label>Search :<\/label>\n<input type=\"search\" name=\"gsearch\">"}, {"t": "type=\"number\"", "r": "Nombres uniquement. Les flèches respectent min et max ; une valeur hors plage (ex. 150) est refusée à l’envoi.", "c": "<form>\n  <label>Nombre :<\/label>\n  <input type=\"number\" name=\"nombre\" min=\"0\" max=\"100\">\n  <button type=\"submit\">Envoyer<\/button>\n<\/form>"}, {"t": "type=\"email\"", "r": "Vérifie le format d’une adresse e-mail (présence de @) au moment de l’envoi. Écris un texte sans @ puis clique sur Envoyer.", "c": "<form>\n  <label>Email :<\/label>\n  <input type=\"email\" name=\"email\" placeholder=\"exemple@mail.com\">\n  <button type=\"submit\">Envoyer<\/button>\n<\/form>"}, {"t": "type=\"url\"", "r": "Vérifie qu’une URL commence par un protocole (https://) au moment de l’envoi. Écris « exemple.com » puis clique sur Envoyer.", "c": "<form>\n  <label>URL :<\/label>\n  <input type=\"url\" name=\"site\" placeholder=\"https://exemple.com\">\n  <button type=\"submit\">Envoyer<\/button>\n<\/form>"}, {"t": "type=\"color\"", "r": "Sélecteur de couleur ; la valeur envoyée est un code #rrggbb.", "c": "<label>Couleur :<\/label>\n<input type=\"color\" name=\"couleur\">"}, {"t": "type=\"tel\"", "r": "Clavier numérique sur mobile. Pas de contrôle de format : utiliser pattern.", "c": "<label>Téléphone :<\/label>\n<input type=\"tel\" name=\"tel\" placeholder=\"+212...\">"}, {"t": "type=\"range\"", "r": "Curseur ; min, max, value (et step) règlent la plage.", "c": "<label>Plage (range) :<\/label>\n<input type=\"range\" name=\"plage\" min=\"0\" max=\"10\" value=\"5\">"}, {"t": "type=\"datetime-local\"", "r": "Date et heure locales.", "c": "<label>Date et heure :<\/label>\n<input type=\"datetime-local\" name=\"datetime\">"}, {"t": "type=\"date\"", "r": "Calendrier pour choisir une date.", "c": "<label>Date :<\/label>\n<input type=\"date\" name=\"date\">"}, {"t": "type=\"month\"", "r": "Mois et année.", "c": "<label>Mois :<\/label>\n<input type=\"month\" name=\"mois\">"}, {"t": "type=\"week\"", "r": "Semaine de l’année.", "c": "<label>Semaine :<\/label>\n<input type=\"week\" name=\"semaine\">"}, {"t": "type=\"time\"", "r": "Heures et minutes.", "c": "<label>Heure :<\/label>\n<input type=\"time\" name=\"heure\">"}, {"t": "type=\"file\"", "r": "Sélection d’un fichier. Pour l’envoi réel, le form doit avoir method=\"post\" et enctype=\"multipart/form-data\".", "c": "<label>Fichier :<\/label>\n<input type=\"file\" name=\"fichier\">"}]}, {"id": "fa", "t": "8.4 Attributs des champs", "l": "Ils règlent le comportement et la validation sans JavaScript. Attention : required, minlength, pattern et step ne se vérifient qu’à l’envoi ; le champ doit être dans un &lt;form&gt; avec un bouton submit.", "items": [{"t": "value", "r": "Valeur initiale du champ.", "c": "<input type=\"text\" name=\"nom\" value=\"Imad\">"}, {"t": "placeholder", "r": "Texte d’aide grisé qui disparaît à la saisie (ne remplace pas le label).", "c": "<input type=\"text\" name=\"prenom\" placeholder=\"Votre prénom\">"}, {"t": "required", "r": "Champ obligatoire : l’envoi est bloqué s’il est vide.", "c": "<form>\n  <input type=\"email\" name=\"email\" required>\n  <button type=\"submit\">Envoyer<\/button>\n<\/form>", "u": "Champ obligatoire : l’envoi est bloqué s’il est vide. Clique sur Envoyer pour voir le contrôle : le navigateur bloque l’envoi et affiche un message. Sans <form> et sans bouton submit, aucune vérification n’est faite."}, {"t": "readonly", "r": "Lecture seule : visible, non modifiable, mais envoyé avec le formulaire.", "c": "<input type=\"text\" name=\"ville\" value=\"Casablanca\" readonly>"}, {"t": "disabled", "r": "Champ désactivé : grisé et non envoyé.", "c": "<input type=\"text\" name=\"pays\" value=\"Maroc\" disabled>"}, {"t": "maxlength", "r": "Nombre maximal de caractères.", "c": "<input type=\"text\" name=\"code\" maxlength=\"5\" placeholder=\"Max 5 caractères\">", "u": "Fonctionne même sans formulaire : la saisie est bloquée au-delà de la limite."}, {"t": "minlength", "r": "Nombre minimal de caractères (contrôlé à l’envoi).", "c": "<form>\n  <input type=\"password\" name=\"motdepasse\" minlength=\"6\" placeholder=\"Min 6 caractères\" required>\n  <button type=\"submit\">Envoyer<\/button>\n<\/form>", "u": "Écris 3 caractères puis clique sur Envoyer. Clique sur Envoyer pour voir le contrôle : le navigateur bloque l’envoi et affiche un message. Sans <form> et sans bouton submit, aucune vérification n’est faite. Attention : sans required, un champ vide est accepté."}, {"t": "pattern (code postal)", "r": "Expression régulière à respecter ; [0-9]{5} = exactement 5 chiffres.", "c": "<form>\n  <input type=\"text\" name=\"codepostal\" pattern=\"[0-9]{5}\" title=\"5 chiffres\" placeholder=\"Ex : 12345\" required>\n  <button type=\"submit\">Envoyer<\/button>\n<\/form>", "u": "Écris « abc » puis clique sur Envoyer ; le title complète le message d’erreur. Clique sur Envoyer pour voir le contrôle : le navigateur bloque l’envoi et affiche un message. Sans <form> et sans bouton submit, aucune vérification n’est faite. Attention : sans required, un champ vide est accepté."}, {"t": "pattern (mot de passe)", "r": "Expression régulière : .{6,16} = entre 6 et 16 caractères.", "c": "<form>\n  <input type=\"password\" name=\"pwdusr\" pattern=\".{6,16}\" title=\"Entre 6 et 16 caractères\" required>\n  <button type=\"submit\">Envoyer<\/button>\n<\/form>", "u": "Écris 3 caractères puis clique sur Envoyer. Clique sur Envoyer pour voir le contrôle : le navigateur bloque l’envoi et affiche un message. Sans <form> et sans bouton submit, aucune vérification n’est faite. Attention : sans required, un champ vide est accepté."}, {"t": "autofocus", "r": "Place le curseur dans ce champ au chargement (un seul par page ; peut être bloqué dans l’aperçu).", "c": "<input type=\"text\" name=\"focus\" autofocus>"}, {"t": "step", "r": "Pas d’incrémentation : ici de 3 en 3.", "c": "<form>\n  <input type=\"number\" name=\"n\" step=\"3\" min=\"0\" max=\"100\">\n  <button type=\"submit\">Envoyer<\/button>\n<\/form>", "u": "Les flèches avancent de 3 en 3. Écris 4 puis clique sur Envoyer : la valeur n’est pas un multiple de 3, l’envoi est refusé."}, {"t": "checked", "r": "Option cochée par défaut.", "c": "<input type=\"radio\" name=\"sexe\" value=\"homme\" checked> Homme  \n<input type=\"radio\" name=\"sexe\" value=\"femme\"> Femme"}, {"t": "multiple", "r": "Autorise la sélection de plusieurs fichiers.", "c": "<input type=\"file\" name=\"fichier\" multiple>"}, {"t": "list + <datalist>", "r": "Propose des suggestions pendant la saisie, avec texte libre autorisé.", "c": "<input type=\"text\" name=\"listattr\" list=\"browsers\">\n<datalist id=\"browsers\">\n    <option>Google chrome<\/option>\n    <option>Mozilla firefox<\/option>\n    <option value=\"Opera\">\n<\/datalist>"}]}, {"id": "fb", "t": "8.5 Boutons, fieldset et label", "l": "Envoyer, effacer, et bien structurer un formulaire.", "items": [{"t": "Boutons : submit, reset, button", "r": "submit envoie le formulaire, reset le vide, button ne fait rien sans JavaScript. Préférer la balise <button>, plus souple.", "c": "<input type=\"submit\" value=\"Envoyer\">\n<input type=\"reset\" value=\"Effacer\">\n<input type=\"button\" value=\"i'm a button Click me !\">\n<br><br>\n<button type=\"submit\">Envoyer<\/button>\n<button type=\"reset\">Effacer<\/button>\n<button type=\"button\" onclick=\"alert('Cliqué !')\">Clique-moi<\/button>"}, {"t": "<fieldset>, <legend> et <label for>", "r": "fieldset regroupe des champs liés, legend donne son titre ; label for=\"id\" relie le texte au champ : cliquer sur le texte active le champ.", "c": "<form action=\"process.php\" method=\"POST\">\n  <fieldset>\n    <legend>Informations personnelles<\/legend>\n    <label for=\"nom\">Nom :<\/label>\n    <input type=\"text\" id=\"nom\" name=\"name\" required><br><br>\n    <label for=\"email\">Email :<\/label>\n    <input type=\"email\" id=\"email\" name=\"email\" required>\n  <\/fieldset>\n  <fieldset>\n    <legend>Compte<\/legend>\n    <label for=\"username\">Identifiant :<\/label>\n    <input type=\"text\" id=\"username\" name=\"username\" value=\"u1233434\" readonly><br><br>\n    <label for=\"password\">Mot de passe :<\/label>\n    <input type=\"password\" id=\"password\" name=\"password\" required>\n  <\/fieldset>\n  <button type=\"submit\" title=\"Envoyer vos données\">Envoyer<\/button>\n<\/form>"}]}]));
+D.find(s=>s.id==='sq').items[0].x=[["<!DOCTYPE html>", "Déclare que la page est en HTML5. Doit être la toute première ligne."], ["<html lang=\"fr\">", "Racine de la page : tout le reste est à l’intérieur. lang=\"fr\" indique la langue (lecteurs d’écran, traduction, référencement)."], ["<head>", "En-tête : informations techniques, non affichées dans la page."], ["<meta charset=\"UTF-8\">", "Encodage des caractères : affiche correctement les accents et l’arabe."], ["<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">", "Adapte la largeur de la page à l’écran du téléphone (site responsive)."], ["<meta name=\"description\" content=\"Ma première page\">", "Résumé de la page, parfois affiché par Google sous le titre."], ["<title>Ma page<\/title>", "Titre affiché dans l’onglet du navigateur et dans les favoris."], ["<\/head>", "Fin de l’en-tête."], ["<body>", "Corps de la page : tout ce qui est visible par l’utilisateur."], ["<h1>Bonjour<\/h1>", "Titre principal de la page."], ["<p>Ma première page web.<\/p>", "Un paragraphe de texte."], ["<\/body>", "Fin du contenu visible."], ["<\/html>", "Fin du document HTML."]];
+D.find(s=>s.id==='tx').items[0]={"t": "<h1> à <h6> : les 6 niveaux de titres", "r": "Titres hiérarchiques : h1 est le plus important, h6 le moins important.", "u": "Un seul h1 par page (le titre principal), puis h2 pour les grandes parties, h3 pour leurs sous-parties, etc., sans sauter de niveau. On choisit le niveau selon la hiérarchie, pas selon la taille : la taille se règle plus tard avec le CSS. Utile pour le référencement (SEO) et les lecteurs d’écran.", "c": "<h1>Titre niveau 1<\/h1>\n<h2>Titre niveau 2<\/h2>\n<h3>Titre niveau 3<\/h3>\n<h4>Titre niveau 4<\/h4>\n<h5>Titre niveau 5<\/h5>\n<h6>Titre niveau 6<\/h6>"};
+D.find(s=>s.id==='ln').items=[{"t": "<a href=\"…\"> : les types de liens", "r": "Crée un lien vers une page, un site, une ancre de la même page, une adresse e-mail ou un numéro de téléphone.", "u": "href indique la destination : un fichier (page2.html), une URL complète, #id pour une ancre, mailto: pour ouvrir le client mail, tel: pour appeler depuis un mobile (format international, sans espaces). target=\"_blank\" ouvre le lien dans un nouvel onglet.", "c": "<p><a href=\"page2.html\">Page 2 de mon site<\/a><\/p>\n<p><a href=\"https://www.ofppt.ma\" target=\"_blank\">OFPPT (nouvel onglet)<\/a><\/p>\n<p><a href=\"#bas\">Aller en bas de la page<\/a><\/p>\n<p><a href=\"mailto:akelimad25@gmail.com\">Écrire un e-mail<\/a><\/p>\n<p><a href=\"tel:+212537803107\">05 37 80 31 07<\/a><\/p>\n<p id=\"bas\">Ancre : le lien « Aller en bas » mène ici.<\/p>"}];
+Object.assign(D.find(s=>s.id==='mm'),{t:'5. Médias',l:'Images, audio, vidéo et contenus intégrés. Les fichiers locaux se rangent dans le dossier du site (images/, data/).',items:[{"t": "Où ranger les fichiers ?", "r": "Les images, sons et vidéos locaux sont rangés dans le dossier du site, à côté de la page HTML ; src et data donnent le chemin relatif depuis cette page.", "u": "Un sous-dossier par type de fichier garde le site propre. Le nom et la casse doivent être exactement les mêmes dans le code et dans le dossier.", "c": "mon-site/\n  index.html\n  images/\n    workplaceg.png\n    mapped_img.png\n  data/\n    001.mp3\n    booking.mp4\n    info.html\n    chapitre7.pdf", "n": 1}, {"t": "<img> : image de ton dossier", "r": "Affiche une image. alt est obligatoire : texte de secours (image cassée, lecteur d’écran, référencement). width règle la largeur en pixels, sans « px ».", "u": "Le fichier doit être dans le dossier images/ à côté de la page. Le contour et les marges se règlent en CSS (l’attribut border est obsolète).", "c": "<img src=\"images/workplaceg.png\" width=\"500\" alt=\"workplace image\">", "n": 2}, {"t": "Image d’un site externe, cliquable", "r": "Utilise l’URL complète d’une image hébergée en ligne. Placée dans un lien <a>, l’image devient cliquable.", "u": "L’image reste chez l’autre site : si elle y est supprimée ou déplacée, elle disparaît de ta page. Préférer tes propres fichiers quand c’est possible.", "c": "<a href=\"https://www.ofppt.ma/\" target=\"_blank\">\n  <img src=\"https://www.dreamjob.ma/wp-content/uploads/2022/03/OFPPT-Concours-Emploi-Recrutement-14.png\"\n       alt=\"ofppt logo\" width=\"400\">\n<\/a>", "n": 2}, {"t": "<picture> : image responsive", "r": "Choisit l’image adaptée à la largeur de l’écran grâce aux <source media=\"…\">. Le navigateur prend la première condition vraie, sinon l’<img> par défaut.", "u": "Évite de charger une grande image sur un téléphone. L’<img> final est obligatoire.", "c": "<picture>\n  <!\u002d- affichée si l'écran fait 1280px ou plus -->\n  <source srcset=\"https://placehold.co/980x400?text=Extralarge(desktop)\"\n          media=\"(min-width: 1280px)\">\n  <!\u002d- 768px ou plus -->\n  <source srcset=\"https://placehold.co/700x300?text=large(pc+portable)\"\n          media=\"(min-width: 768px)\">\n  <!\u002d- 481px ou plus -->\n  <source srcset=\"https://placehold.co/500x300?text=medium(tablet)\"\n          media=\"(min-width: 481px)\">\n  <!\u002d- image par défaut : moins de 481px -->\n  <img src=\"https://placehold.co/300x200?text=small(default)\" alt=\"image responsive\">\n<\/picture>", "n": 2}, {"t": "<map> et <area> : image à zones cliquables", "r": "Rend plusieurs zones d’une même image cliquables, chacune avec son propre lien.", "u": "usemap=\"#image-map\" relie l’image à la <map> qui porte ce nom. coords : rect = x1,y1,x2,y2 ; circle = x,y,rayon ; poly = suite de points x,y. Chaque <area> a un alt.", "c": "<img src=\"images/mapped_img.png\" alt=\"mapped image\" usemap=\"#image-map\">\n<map name=\"image-map\">\n  <area shape=\"rect\" coords=\"32,103,380,260\"\n        href=\"https://google.com\" alt=\"Google\">\n  <area shape=\"circle\" coords=\"560,174,120\"\n        href=\"https://youtube.com\" alt=\"YouTube\">\n  <area shape=\"poly\" coords=\"735,132,880,130,885,85,1036,180,883,280,885,233,730,230\"\n        href=\"https://facebook.com\" alt=\"Facebook\">\n<\/map>", "n": 2}, {"t": "<audio> et <video>", "r": "Lecteurs intégrés ; controls affiche les boutons lecture, pause et volume. Plusieurs <source> permettent de proposer plusieurs formats.", "u": "Le texte à l’intérieur ne s’affiche que si le navigateur ne supporte pas la balise. Formats courants : mp3 (audio) et mp4 (vidéo). Fichiers rangés dans data/.", "c": "<p>\n  <audio controls>\n    <source src=\"data/001.mp3\" type=\"audio/mpeg\">\n    Votre navigateur ne supporte pas l'audio !\n  <\/audio>\n<\/p>\n<video controls width=\"600\" height=\"400\">\n  <source src=\"data/booking.mp4\" type=\"video/mp4\">\n  Votre navigateur ne supporte pas la vidéo !\n<\/video>", "n": 2}, {"t": "<iframe> : vidéo YouTube", "r": "Intègre une autre page web dans la tienne : ici le lecteur d’une vidéo YouTube.", "u": "Sur YouTube : Partager > Intégrer, puis copier l’URL en /embed/…. allowfullscreen autorise le plein écran. Ajouter un title pour l’accessibilité.", "c": "<iframe width=\"760\" height=\"315\"\n        src=\"https://www.youtube.com/embed/BzYMFd-lQL4\"\n        title=\"Vidéo YouTube\"\n        allowfullscreen><\/iframe>", "n": 2}, {"t": "<object> : une page HTML dans une page", "r": "Affiche une autre page HTML à l’intérieur de la page courante. Le contenu de la balise sert de secours si la ressource est introuvable.", "u": "Le fichier doit se trouver dans data/. type indique le format de la ressource.", "c": "<object data=\"data/info.html\" type=\"text/html\" width=\"800\" height=\"500\">\n  Ressource introuvable :\n  <a href=\"data/info.html\">ouvrir data/info.html<\/a>\n<\/object>", "n": 2}, {"t": "<object> : afficher un PDF", "r": "Affiche le contenu d’un PDF directement dans la page.", "u": "Le lien de secours permet de télécharger le PDF si le navigateur ne sait pas l’afficher (fréquent sur mobile).", "c": "<object data=\"data/chapitre7.pdf\" type=\"application/pdf\" width=\"600\" height=\"500\">\n  PDF introuvable :\n  <a href=\"data/chapitre7.pdf\">télécharger le PDF<\/a>\n<\/object>", "n": 2}]});
+D.find(s=>s.id==='mm').items.forEach((i,k)=>{if(k>0)i.n=4});D.find(s=>s.id==='mm').items[0].u+=' Pour voir les résultats de cette section dans l’app : place le fichier index.html dans ce dossier, à côté de images/ et data/, puis ouvre-le depuis là.';
+D.find(s=>s.id==='mm').items.forEach(i=>{if(i.t.indexOf('<iframe>')===0){i.c="<iframe width=\"560\" height=\"315\"\n        src=\"https://www.youtube.com/embed/RFy8It4RSzs?si=LGv8CbYhUapvIX5Z\"\n        title=\"YouTube video player\"\n        allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share\"\n        referrerpolicy=\"strict-origin-when-cross-origin\"\n        allowfullscreen><\/iframe>";i.u="Sur YouTube : Partager > Intégrer, puis copier le code fourni. width et height = taille du lecteur ; title = description pour l’accessibilité ; allow = fonctions autorisées au lecteur ; referrerpolicy = informations envoyées à YouTube ; allowfullscreen = plein écran. L’attribut frameborder=\"0\" donné par YouTube est obsolète : il est retiré ici (la bordure se règle en CSS)."}});
+D.find(s=>s.id==='mm').items.forEach(i=>{if(i.t.indexOf('<iframe>')===0)i.w="<b>Erreur 153 « configuration du lecteur » ?<\/b> YouTube exige que la page indique d’où elle vient (en-tête Referer). Une page ouverte en double-clic (adresse file://) n’en envoie pas, et l’aperçu en ligne non plus : le lecteur est refusé. Pour que la vidéo s’affiche, ouvre la page depuis un serveur local (extension Live Server de VS Code, ou XAMPP avec <code>http://localhost/mon-site/<\/code>) ou depuis un site en ligne. En attendant : <a href=\"https://www.youtube.com/watch?v=RFy8It4RSzs\" target=\"_blank\">ouvrir la vidéo sur YouTube<\/a>."});
+D.find(s=>s.id==='mm').items.forEach(i=>{if(i.t.indexOf('<iframe>')===0)i.d=1});
+Object.assign(D.find(s=>s.id==='se').items[0],{"t": "Une vraie page : header, nav, main, section, aside, article, footer", "r": "Les balises sémantiques donnent un sens à chaque zone de la page, au lieu d’empiler des <div> sans signification. Structure : header (avec nav), main (avec section, aside et article), footer.", "u": "Elles servent au référencement (Google comprend la page), à l’accessibilité (lecteurs d’écran) et à la lisibilité du code. Elles sont toutes identiques à l’affichage : c’est le CSS qui les mettra en forme plus tard.", "c": "<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Mon blog<\/title>\n<\/head>\n<body>\n  <header>\n    <h1>Mon blog<\/h1>\n    <nav>\n      <a href=\"#\">Accueil<\/a>\n      <a href=\"#\">Articles<\/a>\n      <a href=\"#\">Contact<\/a>\n    <\/nav>\n  <\/header>\n  <main>\n    <section>\n      <h2>Bienvenue<\/h2>\n      <p>Présentation du site.<\/p>\n    <\/section>\n    <aside>\n      <h3>À propos<\/h3>\n      <p>Informations complémentaires.<\/p>\n    <\/aside>\n    <article>\n      <h2>Mon premier article<\/h2>\n      <p>Contenu de l'article.<\/p>\n    <\/article>\n  <\/main>\n  <footer>\n    <p>© 2026 Mon blog<\/p>\n  <\/footer>\n<\/body>\n<\/html>", "x": [["<header>", "En-tête de la page : logo, titre du site, et souvent le menu."], ["<nav>", "Menu de navigation : groupe les liens principaux du site."], ["<main>", "Contenu principal, propre à cette page. Un seul <main> par page."], ["<section>", "Bloc thématique de la page, généralement introduit par un titre (h2…)."], ["<aside>", "Contenu annexe, lié indirectement au reste : à-propos, publicité, liens utiles."], ["<article>", "Contenu autonome qui garde son sens seul : article de blog, actualité, commentaire."], ["<footer>", "Pied de page : copyright, contacts, liens légaux."]], "w": "Aperçu : l’app ajoute des contours pointillés et le nom de chaque balise pour que tu voies la structure. Sans CSS, ces balises s’affichent comme de simples blocs de texte, sans aucune mise en forme : leur rôle est de donner du sens à la page (référencement, lecteurs d’écran), pas de la décorer."});
+D.find(s=>s.id==='se').l='Elles donnent du sens à la page (référencement, lecteurs d’écran) au lieu d’empiler des <div>.';
+Object.assign(D.find(s=>s.id==='se').items[0],{c:"<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Mon blog<\/title>\n<\/head>\n<body>\n  <header>\n    <h1>Mon blog<\/h1>\n    <nav>\n      <a href=\"#\">Accueil<\/a>\n      <a href=\"#\">Articles<\/a>\n      <a href=\"#\">Contact<\/a>\n    <\/nav>\n  <\/header>\n  <main>\n    <section>\n      <h2>Derniers articles<\/h2>\n      <article>\n        <h3>Mon premier article<\/h3>\n        <p>Contenu de l'article.<\/p>\n      <\/article>\n      <article>\n        <h3>Mon deuxième article<\/h3>\n        <p>Contenu de l'article.<\/p>\n      <\/article>\n    <\/section>\n    <aside>\n      <h3>À propos<\/h3>\n      <p>Informations complémentaires.<\/p>\n    <\/aside>\n  <\/main>\n  <footer>\n    <p>© 2026 Mon blog<\/p>\n  <\/footer>\n<\/body>\n<\/html>",x:[["<header>", "En-tête de la page : logo, titre du site, et souvent le menu."], ["<nav>", "Menu de navigation : groupe les liens principaux du site."], ["<main>", "Contenu principal, propre à cette page. Un seul <main> par page."], ["<section>", "Bloc thématique qui regroupe des contenus liés (ici, des articles), généralement avec un titre."], ["<article>", "Contenu autonome qui garde son sens seul (article de blog, actualité). Souvent placé dans une <section>."], ["<aside>", "Contenu annexe, lié indirectement au reste : à-propos, infos utiles, publicité. Placé dans <main>, à côté de la section."], ["<footer>", "Pied de page : copyright, contacts, liens légaux."]],r:"Les balises sémantiques donnent un sens à chaque zone de la page, au lieu d’empiler des <div> sans signification. Structure : header (avec nav), main (avec une section qui contient des article, et un aside), footer."});
+D.find(s=>s.id==='se').items.push({"t": "TP d’application : page d’accueil complète", "r": "Mise en pratique : construire une page d’accueil qui utilise toutes les balises sémantiques vues : header (logo cliquable et nav), main (une section de 3 articles et un aside), footer.", "u": "Crée un dossier mon-site/ avec index.html et un sous-dossier images/ contenant logo.png. Recopie la page, puis ouvre-la dans le navigateur. Les pages inscription.html, a_propos.html et contact.html seront créées plus tard : leurs liens ne mènent encore nulle part. La mise en forme (couleurs, fond, marges) viendra avec le CSS.", "c": "<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Mon Site Web<\/title>\n<\/head>\n<body>\n  <!\u002d- HEADER -->\n  <header>\n    <a href=\"index.html\">\n      <img src=\"images/logo.png\" alt=\"logo de mon site\" width=\"70\">\n    <\/a>\n    <nav>\n      <ul>\n        <li><a href=\"index.html\">Accueil<\/a><\/li>\n        <li><a href=\"inscription.html\">Inscription<\/a><\/li>\n        <li><a href=\"a_propos.html\">À propos<\/a><\/li>\n        <li><a href=\"contact.html\">Contact<\/a><\/li>\n      <\/ul>\n    <\/nav>\n  <\/header>\n\n  <!\u002d- CONTENU PRINCIPAL -->\n  <main>\n    <!\u002d- SECTION avec 3 articles -->\n    <section>\n      <article>\n        <h2>Article 1 : Introduction au Web<\/h2>\n        <p>Le web est un espace d'information relié par des liens hypertextes.\n           Il permet de partager des connaissances partout dans le monde.<\/p>\n        <p>Le mot <span>HTML<\/span> signifie <em>HyperText Markup Language<\/em>.<\/p>\n      <\/article>\n\n      <article>\n        <h2>Article 2 : Structure d'une page<\/h2>\n        <p>Une page web est structurée grâce à des balises comme\n           <span>&lt;header&gt;<\/span>, <span>&lt;main&gt;<\/span>\n           et <span>&lt;footer&gt;<\/span>.\n           Chacune a un rôle bien précis dans l'organisation du contenu.<\/p>\n      <\/article>\n\n      <article>\n        <h2>Article 3 : Mise en forme<\/h2>\n        <p>Les balises HTML définissent la structure, tandis que le\n           <span>CSS<\/span> gère l'apparence visuelle :\n           couleurs, marges, typographie, etc.<\/p>\n      <\/article>\n    <\/section>\n\n    <!\u002d- ASIDE -->\n    <aside>\n      <h3>Infos utiles<\/h3>\n      <ul>\n        <li>Formation HTML/CSS<\/li>\n        <li>Projet de fin de stage<\/li>\n        <li>Documentation W3C<\/li>\n      <\/ul>\n    <\/aside>\n  <\/main>\n\n  <!\u002d- FOOTER -->\n  <footer>\n    <p>&copy; 2025 MonSiteWeb — Tous droits réservés.<\/p>\n  <\/footer>\n<\/body>\n<\/html>", "n": 4});
+const OB=[['<font color="red">','p { color: red; }'],['<center>','text-align: center; (ou margin: auto)'],['<big>, <strike>, <tt>','font-size, text-decoration: line-through, font-family: monospace'],['<acronym>','<abbr>'],['bgcolor="…" (body)','body { background: #eab676; }'],['align="…" (table, caption…)','text-align, margin, caption-side'],['<frame>, <frameset>','<iframe> ou mise en page CSS'],['<marquee>, <blink>','@keyframes + animation'],['<b>, <i> (pour le sens)','<strong>, <em>']];
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function hl(code){let st=false;return code.split('\n').map(l=>{
+ if(/<style/.test(l)&&!/<\/style>/.test(l))st=true;
+ if(st&&!/<style/.test(l)){if(/<\/style>/.test(l))st=false;
+  if(/\{\s*$/.test(l)){return esc(l).replace(/^(\s*)(.*?)(\s*\{)\s*$/,'$1<span class="sl">$2<\/span>$3')}
+  if(/\{/.test(l)&&!/<\/style/.test(l)){return esc(l).replace(/^(\s*)([^{]+)(\{)/,'$1<span class="sl">$2<\/span>$3').replace(/([\w-]+)(\s*:\s*)([^;}]+)/g,(m,p,c,v)=>'<span class="pr">'+p+'<\/span>'+c+'<span class="nu">'+v+'<\/span>')}
+  return esc(l).replace(/^(\s*)([\w-]+)(\s*:\s*)([^;]+)/,'$1<span class="pr">$2<\/span>$3<span class="nu">$4<\/span>')}
+ let e=esc(l);
+ if(/^\s*(#|&lt;!--)/.test(l)&&!/^\s*&lt;/.test(e.trim()[0]==='&'?'':e))return '<span class="cm">'+e+'<\/span>';
+ e=e.replace(/(&lt;!--.*?--&gt;)/g,'<span class="cm">$1<\/span>');
+ e=e.replace(/(&lt;\/?)([\w!-]+)((?:\s[^&]*?)?)(\/?&gt;)/g,(m,a,t,at,z)=>'<span class="tg">'+a+t+'<\/span>'+at.replace(/([\w:-]+)(=)("[^"]*")/g,'<span class="at">$1<\/span>$2<span class="st">$3<\/span>')+'<span class="tg">'+z+'<\/span>');
+ if(!/<span/.test(e)){e=e.replace(/^(\s*)(&lt;\/?[\w!-]+)/,'$1<span class="tg">$2<\/span>').replace(/([\w:-]+)(=)("[^"]*")/g,'<span class="at">$1<\/span>$2<span class="st">$3<\/span>')}
+ return e}).join('\n')}
+function cb(c){const d=document.createElement('div');d.className='cb';d.innerHTML='<pre>'+hl(c)+'<\/pre><button>Copier<\/button>';
+ d.querySelector('button').onclick=function(){navigator.clipboard.writeText(c).then(()=>{this.textContent='Copié';setTimeout(()=>this.textContent='Copier',1400)}).catch(()=>{const r=document.createRange();r.selectNodeContents(d.querySelector('pre'));getSelection().removeAllRanges();getSelection().addRange(r)})};return d}
+function direct(c){const d=document.createElement('div');d.style.cssText='max-width:100%;overflow-x:auto';d.innerHTML=c;return d}
+function sema(c){return c.indexOf('<main')>-1?'<style>'+['header','nav','main','section','aside','article','footer'].map(t=>t+'{display:block;border:2px dashed #0b6e6e;margin:6px;padding:6px}'+t+'::before{content:"<'+t+'>";display:block;font:11px monospace;color:#0b6e6e}').join('')+'<\/style>':''}
+function res(c){const f=document.createElement('iframe');f.srcdoc='<!DOCTYPE html><meta charset=UTF-8><base target=_blank><style>body{font:15px/1.5 sans-serif;margin:12px;color:#111}table,th,td{border:1px solid #888;border-collapse:collapse;padding:4px 10px}<\/style>'+sema(c)+c+'<scr'+'ipt>addEventListener("click",function(e){var a=e.target.closest&&e.target.closest("a");var h=a&&a.getAttribute("href");if(h&&h.charAt(0)==="#"){e.preventDefault();var t=document.getElementById(h.slice(1));if(t)t.scrollIntoView()}});addEventListener("submit",function(e){e.preventDefault();var o=document.getElementById("ok");if(!o){o=document.createElement("p");o.id="ok";o.style.cssText="color:#0a7a3d;font-weight:600";document.body.appendChild(o)}o.textContent="✔ Données valides : le formulaire serait envoyé."})<\/scr'+'ipt>';
+ const fit=()=>{try{f.style.height='0px';f.style.height=f.contentDocument.documentElement.scrollHeight+2+'px'}catch(e){}};f.onload=()=>{fit();setTimeout(fit,600);try{new ResizeObserver(()=>fit()).observe(f.contentDocument.body)}catch(e){}};return f}
+function fmtCss(css){const o=[];let ind=0,buf='';const pad=()=>'  '.repeat(ind);
+for(const ch of css){
+ if(ch==='{'){o.push(pad()+buf.trim()+' {');buf='';ind++}
+ else if(ch===';'){o.push(pad()+buf.trim()+';');buf=''}
+ else if(ch==='}'){if(buf.trim()){o.push(pad()+buf.trim()+';');buf=''}ind=Math.max(0,ind-1);o.push(pad()+'}');if(ind===0)o.push('')}
+ else buf+=ch}
+return o.join('\n').trim()}
+D.forEach(s=>s.items.forEach(i=>{i.c=i.c.replace(/<style>([\s\S]*?)<\/style>/g,(m,c)=>'<style>\n'+fmtCss(c)+'\n<\/style>')}));
+const app=document.getElementById('app'),menu=document.getElementById('menu');
+D.forEach(s=>{const a=document.createElement('a');a.href='#'+s.id;a.textContent=s.t;a.dataset.id=s.id;menu.appendChild(a);
+ const sec=document.createElement('section');sec.id='s-'+s.id;sec.innerHTML='<h2 class="s">'+s.t+'<\/h2><p class="lead">'+s.l.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'<\/p>';
+ if(s.id==='ob'){const t=document.createElement('table');t.className='ob';t.innerHTML='<tr><th>Obsolète<\/th><th>Remplacer par<\/th><\/tr>'+OB.map(r=>'<tr><td><code>'+esc(r[0])+'<\/code><\/td><td><code>'+esc(r[1])+'<\/code><\/td><\/tr>').join('');sec.appendChild(t);
+  sec.insertAdjacentHTML('beforeend','<div class="note">Corrections du PDF : écrire <code>&lt;!DOCTYPE html&gt;<\/code> (pas « htlm »), utiliser des guillemets droits <code>"…"<\/code> (pas « … »), et fermer avec <code>&lt;/body&gt;<\/code> avant <code>&lt;/html&gt;<\/code>.<\/div>')}
+ s.items.forEach(i=>{const it=document.createElement('div');it.className='it';it.innerHTML='<h3>'+esc(i.t)+'<\/h3><p><b>À quoi ça sert :<\/b> '+esc(i.r)+'<\/p>'+(i.u?'<p><b>En pratique :<\/b> '+esc(i.u)+'<\/p>':'');
+  it.appendChild(cb(i.c));if(i.w)it.insertAdjacentHTML('beforeend','<div class="note">'+i.w+'<\/div>');if(i.x){it.insertAdjacentHTML('beforeend','<div class="res">Explication ligne par ligne<\/div>');const t=document.createElement('table');t.className='ob';t.innerHTML='<tr><th>Ligne<\/th><th>Rôle<\/th><\/tr>'+i.x.map(r=>'<tr><td><code>'+esc(r[0])+'<\/code><\/td><td>'+esc(r[1])+'<\/td><\/tr>').join('');it.appendChild(t)}if(i.n===4)it.insertAdjacentHTML('beforeend','<div class="note">Le résultat s’affiche quand tu ouvres ce fichier index.html depuis ton dossier de travail, avec les dossiers images/ et data/ à côté (voir « Où ranger les fichiers ? »). Sur la version en ligne ces fichiers n’existent pas : l’exemple y apparaît vide.<\/div>');if(!i.n||i.n===4){it.insertAdjacentHTML('beforeend','<div class="res">Résultat<\/div>');it.appendChild(i.d?direct(i.c):res(i.c))}sec.appendChild(it)});
+ app.appendChild(sec)});
+function go(){const id=(location.hash||'#sq').slice(1);document.querySelectorAll('section').forEach(x=>x.classList.toggle('show',x.id==='s-'+id));
+ document.querySelectorAll('nav a').forEach(x=>x.classList.toggle('on',x.dataset.id===id));document.querySelector('nav').classList.remove('open');scrollTo(0,0)}
+addEventListener('hashchange',go);go();
+</script>
+</body>
+</html>

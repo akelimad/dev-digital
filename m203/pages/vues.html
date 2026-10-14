@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MySQL — Les vues</title>
+<style>
+:root{
+  --bg:#f5f7fb; --card:#fff; --text:#182230; --muted:#657184;
+  --blue:#2563eb; --blue2:#dbeafe; --green:#15803d; --green2:#dcfce7;
+  --orange:#c2410c; --orange2:#ffedd5; --red:#b91c1c; --red2:#fee2e2;
+  --border:#e5e7eb; --code:#111827;
+}
+*{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+header{background:linear-gradient(135deg,#172554,#2563eb);color:white;padding:48px 22px}
+.container{max-width:1100px;margin:auto;padding:0 22px}
+header h1{font-size:42px;margin:0 0 10px} header p{font-size:19px;max-width:800px;margin:0;color:#dbeafe}
+section{margin:28px 0}.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px;box-shadow:0 8px 24px #1118270b}
+h2{font-size:28px;margin-top:0} h3{font-size:20px}.lead{font-size:18px;color:var(--muted)}
+.badge{display:inline-block;padding:5px 10px;border-radius:999px;font-weight:700;font-size:13px;margin-bottom:10px}
+.blue{background:var(--blue2);color:#1d4ed8}.green{background:var(--green2);color:var(--green)}
+.orange{background:var(--orange2);color:var(--orange)}.red{background:var(--red2);color:var(--red)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:18px}
+pre{background:var(--code);color:#e5e7eb;padding:18px;border-radius:12px;overflow:auto;font-size:14px}
+code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+.note{border-left:5px solid var(--blue);background:#eff6ff;padding:15px 18px;border-radius:10px}
+.warning{border-left:5px solid #f97316;background:#fff7ed;padding:15px 18px;border-radius:10px}
+.lifecycle{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;align-items:stretch}
+.step{background:#f8fafc;border:1px solid var(--border);border-radius:14px;padding:18px;text-align:center}
+.step strong{display:block;font-size:17px}.arrow{font-size:25px;color:var(--blue);display:flex;align-items:center;justify-content:center}
+table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid var(--border);padding:12px;text-align:left}th{background:#f8fafc}
+.mirror-wrap{display:flex;justify-content:center;margin:10px 0 20px}
+svg{max-width:560px;width:100%;height:auto}
+footer{text-align:center;color:var(--muted);padding:35px}
+@media(max-width:750px){header h1{font-size:32px}.lifecycle{grid-template-columns:1fr}.arrow{transform:rotate(90deg)}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <span class="badge" style="background:#ffffff22;color:white">MySQL • Cours</span>
+    <h1>Les vues : une fenêtre sur les données</h1>
+    <p>Comprendre leur rôle avec la base Développeurs / Projets / Logiciels, puis suivre leur cycle de vie.</p>
+  </div>
+</header>
+
+<main class="container">
+
+<section class="card">
+  <span class="badge blue">1 — L'idée</span>
+  <h2>Une vue, c'est quoi ?</h2>
+  <p class="lead">
+    Une vue est une représentation virtuelle de données provenant d'une ou plusieurs tables.
+    On peut l'imaginer comme un <strong>miroir</strong> : elle montre les données de la table source,
+    mais elle ne crée pas une deuxième copie de ces données.
+  </p>
+
+  <div class="mirror-wrap">
+    <svg viewBox="0 0 760 300" role="img" aria-label="Illustration d'une table source reflétée par une vue">
+      <defs>
+        <linearGradient id="mirror" x1="0" x2="1">
+          <stop offset="0" stop-color="#dbeafe"/><stop offset="1" stop-color="#eff6ff"/>
+        </linearGradient>
+        <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/>
+        </marker>
+      </defs>
+      <rect x="25" y="70" width="260" height="160" rx="18" fill="#fff" stroke="#cbd5e1" stroke-width="3"/>
+      <text x="155" y="105" text-anchor="middle" font-size="21" font-weight="700" fill="#182230">TABLE SOURCE</text>
+      <text x="55" y="140" font-size="16" fill="#475569">developpeur</text>
+      <text x="55" y="168" font-size="14" fill="#64748b">numdev • nomdev • emaildev</text>
+      <text x="55" y="195" font-size="14" fill="#64748b">adrdev • teldev</text>
+      <line x1="300" y1="150" x2="445" y2="150" stroke="#2563eb" stroke-width="5" marker-end="url(#arrow)"/>
+      <text x="372" y="130" text-anchor="middle" font-size="15" font-weight="700" fill="#2563eb">SELECT</text>
+      <rect x="470" y="45" width="265" height="210" rx="18" fill="url(#mirror)" stroke="#2563eb" stroke-width="3"/>
+      <text x="602" y="82" text-anchor="middle" font-size="21" font-weight="700" fill="#1d4ed8">VUE</text>
+      <text x="602" y="112" text-anchor="middle" font-size="16" fill="#334155">vue_developpeurs</text>
+      <rect x="510" y="135" width="185" height="78" rx="10" fill="#ffffffaa" stroke="#93c5fd"/>
+      <text x="602" y="160" text-anchor="middle" font-size="14" fill="#475569">numdev • nomdev</text>
+      <text x="602" y="186" text-anchor="middle" font-size="14" fill="#475569">emaildev</text>
+    </svg>
+  </div>
+
+  <div class="note"><strong>À retenir :</strong> une vue ne contient pas une copie indépendante des lignes. Elle présente le résultat de sa définition.</div>
+</section>
+
+<section class="card">
+  <span class="badge blue">2 — Notre base</span>
+  <h2>La base de données utilisée</h2>
+  <pre><code>developpeur (numdev, nomdev, adrdev, emaildev, teldev)
+projet      (numproj, titreproj, datedeb, datefin)
+logiciel    (codlog, nomlog, prixlog, #numproj)
+realisation (#numproj, #numdev)</code></pre>
+  <p>On va utiliser surtout <code>developpeur</code>, puis une vue basée sur plusieurs tables.</p>
+</section>
+
+<section class="card">
+  <span class="badge green">3 — Cas simple</span>
+  <h2>Créer une vue avec une seule table</h2>
+  <p>On veut présenter les développeurs à travers une vue.</p>
+  <pre><code>CREATE VIEW vue_developpeurs AS
+SELECT *
+FROM developpeur;</code></pre>
+
+  <h3>Lire la vue</h3>
+  <pre><code>SELECT * FROM vue_developpeurs;</code></pre>
+
+  <div class="grid">
+    <div class="card" style="box-shadow:none">
+      <span class="badge green">SELECT</span>
+      <p>La vue affiche les données de <code>developpeur</code>.</p>
+    </div>
+    <div class="card" style="box-shadow:none">
+      <span class="badge green">INSERT</span>
+      <p>Si la vue est modifiable, l'insertion passe dans la table source.</p>
+    </div>
+    <div class="card" style="box-shadow:none">
+      <span class="badge green">UPDATE / DELETE</span>
+      <p>Les modifications passent également sur la table source.</p>
+    </div>
+  </div>
+
+  <pre><code>DELETE FROM vue_developpeurs
+WHERE numdev = 10;</code></pre>
+  <p class="warning"><strong>Attention :</strong> ce DELETE ne supprime pas la vue. Il supprime la ligne correspondante de la table <code>developpeur</code>, si la vue est modifiable.</p>
+</section>
+
+<section class="card">
+  <span class="badge orange">4 — Cas avec JOIN</span>
+  <h2>Une vue qui rassemble plusieurs tables</h2>
+  <p>On veut voir directement quel développeur travaille sur quel projet.</p>
+  <pre><code>CREATE VIEW vue_developpeurs_projets AS
+SELECT d.nomdev, p.titreproj
+FROM developpeur d
+JOIN realisation r
+  ON d.numdev = r.numdev
+JOIN projet p
+  ON r.numproj = p.numproj;</code></pre>
+
+  <pre><code>SELECT * FROM vue_developpeurs_projets;</code></pre>
+
+  <div class="warning">
+    <strong>Pourquoi cette vue n'est pas comme la précédente ?</strong><br>
+    Le résultat provient de plusieurs tables reliées par des <code>JOIN</code>.
+    Ce type de vue est généralement <strong>non modifiable</strong> pour les opérations
+    comme INSERT/UPDATE/DELETE, selon sa définition et les règles de MySQL.
+  </div>
+</section>
+
+<section class="card">
+  <span class="badge blue">5 — Pourquoi utiliser une vue ?</span>
+  <h2>Alors pourquoi ne pas faire directement le SELECT ?</h2>
+  <p>Pour une requête ponctuelle, le stagiaire a raison : un SELECT direct suffit.</p>
+  <p>L'intérêt apparaît lorsqu'une requête est <strong>réutilisée</strong>, lorsqu'elle est complexe,
+     ou lorsqu'on veut donner accès à une présentation limitée des données.</p>
+
+  <table>
+    <tr><th>Sans vue</th><th>Avec vue</th></tr>
+    <tr><td>Réécrire les JOIN et les conditions</td><td>Réutiliser <code>SELECT * FROM ma_vue</code></td></tr>
+    <tr><td>Logique dispersée dans plusieurs requêtes</td><td>Logique centralisée dans la vue</td></tr>
+    <tr><td>Accès direct aux tables</td><td>On peut exposer seulement certaines colonnes</td></tr>
+  </table>
+</section>
+
+<section class="card">
+  <span class="badge blue">6 — Cycle de vie</span>
+  <h2>Le cycle de vie d'une vue</h2>
+  <div class="lifecycle">
+    <div class="step"><strong>1. Créer</strong><code>CREATE VIEW</code></div>
+    <div class="arrow">→</div>
+    <div class="step"><strong>2. Utiliser</strong><code>SELECT FROM vue</code></div>
+    <div class="arrow">→</div>
+    <div class="step"><strong>3. Modifier</strong><code>CREATE OR REPLACE VIEW</code></div>
+  </div>
+  <div style="height:12px"></div>
+  <div class="lifecycle">
+    <div class="step"><strong>4. Supprimer</strong><code>DROP VIEW</code></div>
+    <div class="arrow">→</div>
+    <div class="step"><strong>5. Tables sources</strong><span>restent intactes</span></div>
+  </div>
+
+  <h3>Supprimer la vue</h3>
+  <pre><code>DROP VIEW vue_developpeurs;</code></pre>
+  <div class="note">
+    <strong>Important :</strong> <code>DROP VIEW</code> supprime la vue, pas la table
+    <code>developpeur</code>. Les données de la table source restent présentes.
+  </div>
+</section>
+
+<section class="card">
+  <span class="badge green">7 — Résumé à retenir</span>
+  <h2>Une phrase pour l'examen</h2>
+  <p style="font-size:21px;font-weight:700">
+    Une vue est une représentation virtuelle de données basée sur une requête SELECT.
+    Elle peut être consultée comme une table et, lorsqu'elle est modifiable,
+    certaines opérations INSERT, UPDATE ou DELETE se répercutent sur les tables sources.
+  </p>
+</section>
+
+</main>
+<footer>MySQL — Les vues • Exemple basé sur la base Développeurs / Projets / Logiciels</footer>
+<style>.hk{color:#7dd3fc}.hc{color:#94a3b8;font-style:italic}.hs{color:#fca5a5}.hn{color:#fcd34d}.hf{color:#c4b5fd}</style>
+<script>
+(function(){
+var KW="CREATE|TEMPORARY|TABLE|TABLES|VIEW|REPLACE|OR|DROP|ALTER|INSERT|INTO|VALUES|UPDATE|DELETE|SELECT|DISTINCT|FROM|WHERE|AND|NOT|NULL|IS|AS|JOIN|INNER|LEFT|RIGHT|ON|GROUP|BY|ORDER|HAVING|LIMIT|SET|LOCK|UNLOCK|READ|WRITE|LOCAL|PRIMARY|KEY|FOREIGN|REFERENCES|DEFAULT|PROCEDURE|FUNCTION|RETURNS|RETURN|DETERMINISTIC|DELIMITER|BEGIN|END|DECLARE|IF|THEN|ELSEIF|ELSE|CASE|WHEN|WHILE|DO|REPEAT|UNTIL|LOOP|LEAVE|ITERATE|CALL|IN|OUT|INOUT|INT|DECIMAL|DATE|VARCHAR|DOUBLE|SHOW|USE|DATABASE|START|TRANSACTION|COMMIT|ROLLBACK|WITH|CHECK|OPTION|EXISTS";
+var re=new RegExp("(--[^\\n]*)|('(?:[^'\\\\]|\\\\.|'')*')|\\b(\\d+(?:\\.\\d+)?)\\b|\\b("+KW+")\\b|\\b([A-Za-z_]+)(?=\\()","g");
+document.querySelectorAll("pre > code").forEach(function(el){
+  if(el.querySelector("span"))return;
+  var t=el.textContent.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  el.innerHTML=t.replace(re,function(m,c,s,n,k,f){
+    var cl=c?"hc":s?"hs":n?"hn":k?"hk":"hf";
+    return '<span class="'+cl+'">'+m+'</span>';
+  });
+});
+})();
+</script>
+</body>
+</html>

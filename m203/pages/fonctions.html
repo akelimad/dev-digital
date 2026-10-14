@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Les Fonctions Stockées – Simplifié</title>
+<style>
+:root{--bg:#f7f8fb;--card:#fff;--tx:#1c2233;--mut:#5b6478;--ac:#2f6fed;--in:#16a34a;--out:#ea580c;--io:#7c3aed;--code:#0f172a;--codetx:#e2e8f0;--bd:#e3e7ef;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1420;--card:#171e2e;--tx:#e8ecf5;--mut:#98a2b8;--ac:#6b9bff;--bd:#28314a;--code:#0a0e18}}
+:root[data-theme="dark"]{--bg:#0f1420;--card:#171e2e;--tx:#e8ecf5;--mut:#98a2b8;--ac:#6b9bff;--bd:#28314a;--code:#0a0e18}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.6}
+header{background:linear-gradient(135deg,#2f6fed,#7c3aed);color:#fff;padding:2.2rem 1rem;text-align:center}
+header h1{margin:0 0 .3rem;font-size:clamp(1.6rem,5vw,2.4rem)}
+header p{margin:0;opacity:.9}
+main{max-width:860px;margin:0 auto;padding:1rem}
+section{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:1.2rem 1.3rem;margin:1rem 0}
+h2{margin:0 0 .6rem;font-size:1.3rem;color:var(--ac)}
+h3{margin:1rem 0 .3rem}
+.tag{display:inline-block;font-weight:700;font-size:.8rem;padding:.1rem .6rem;border-radius:99px;color:#fff;vertical-align:middle}
+.t-in{background:var(--in)}.t-out{background:var(--out)}.t-io{background:var(--io)}
+pre{background:var(--code);color:var(--codetx);padding:.9rem 1rem;border-radius:10px;overflow-x:auto;font-size:.88rem;line-height:1.5;margin:.6rem 0}
+code{font-family:ui-monospace,Consolas,monospace}
+.k{color:#7dd3fc}.c{color:#94a3b8}.s{color:#fca5a5}
+.box{border-left:4px solid var(--ac);background:color-mix(in srgb,var(--ac) 10%,transparent);padding:.6rem .9rem;border-radius:8px;margin:.7rem 0}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:.5rem 0 .5rem 2.6rem}
+.steps li:before{content:counter(s);position:absolute;left:0;top:.4rem;width:1.9rem;height:1.9rem;border-radius:50%;background:var(--ac);color:#fff;display:grid;place-items:center;font-weight:700}
+.grid{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.mini{border:1px solid var(--bd);border-radius:10px;padding:.7rem .9rem}
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:520px}
+th,td{border:1px solid var(--bd);padding:.5rem .6rem;text-align:left}
+th{background:color-mix(in srgb,var(--ac) 12%,transparent)}
+ul{padding-left:1.2rem}
+details{margin-top:.8rem}summary{cursor:pointer;padding:.4rem 0}
+</style>
+</head>
+<body>
+<header>
+<h1>🧮 Les Fonctions Stockées</h1>
+<p>Comprendre les fonctions simplement : paramètres, RETURN et appel dans un SELECT</p>
+</header>
+<main>
+
+<section>
+<h2>1. Définition</h2>
+<p>Une <b>fonction stockée</b> est un <b>sous-programme enregistré dans la base de données</b> avec un nom. Elle reçoit des paramètres et <b>renvoie une seule valeur</b> grâce à <code>RETURN</code>. On l'appelle comme une fonction native (<code>UPPER()</code>, <code>SUM()</code>...) : directement dans un <code>SELECT</code>, un <code>WHERE</code>, etc.</p>
+<div class="box">💡 <b>Image simple :</b> c'est comme une <b>formule de calculatrice</b> qu'on s'est fabriquée. On donne des nombres, elle rend <b>un résultat</b>, et on peut l'utiliser partout où une valeur est attendue.</div>
+<h3>Ce qu'elle peut contenir</h3>
+<ul>
+<li>Des <b>variables</b> (<code>DECLARE</code>) et des requêtes <code>SELECT ... INTO</code>.</li>
+<li>Des <b>instructions conditionnelles</b> : <code>IF</code>, <code>CASE</code>.</li>
+<li>Des <b>boucles</b>.</li>
+<li>L'appel d'une <b>autre fonction</b> pour découper le code en modules.</li>
+</ul>
+</section>
+
+<section>
+<h2>2. Pourquoi les utiliser ? (Utilité et avantages)</h2>
+<div class="box">👉 <b>Quand l'utiliser ?</b> Dès qu'un <b>calcul</b> ou une <b>règle</b> est répété dans plusieurs requêtes et qu'on veut en tirer <b>une seule valeur</b>.</div>
+<div class="grid">
+<div class="mini"><b>♻️ Réutilisable</b><br>On écrit le calcul <b>une fois</b> et on l'appelle dans toutes les requêtes qui en ont besoin.</div>
+<div class="mini"><b>👁️ Requêtes plus lisibles</b><br><code>prix_ttc(prixlog, 20)</code> est plus clair qu'une formule recopiée partout.</div>
+<div class="mini"><b>🛠️ Facile à maintenir</b><br>Si la règle change (ex : taux de TVA), on modifie <b>un seul endroit</b>. Les résultats restent <b>cohérents</b>.</div>
+</div>
+</section>
+
+<section>
+<h2>3. Cas d'utilisation</h2>
+<div class="grid">
+<div class="mini">👨‍💻 <b>Développeurs</b><br>Retrouver le nom d'un développeur à partir de son numéro.</div>
+<div class="mini">📁 <b>Projets</b><br>Compter les logiciels ou les développeurs d'un projet.</div>
+<div class="mini">💿 <b>Logiciels</b><br>Calculer un prix TTC ou classer un prix (économique, standard, premium).</div>
+<div class="mini">📊 <b>Rapports</b><br>Obtenir le total des prix des logiciels d'un projet.</div>
+</div>
+</section>
+
+<section>
+<h2>4. Notre base de données</h2>
+<p>Tous les exemples utilisent la même base : des <b>développeurs</b> qui réalisent des <b>projets</b>, et chaque projet a des <b>logiciels</b>.</p>
+<div class="grid">
+<div class="mini"><b>👨‍💻 developpeur</b><br><small>numdev (PK), nomdev, adrdev, emaildev, teldev</small></div>
+<div class="mini"><b>📁 projet</b><br><small>numproj (PK), titreproj, datedeb, datefin</small></div>
+<div class="mini"><b>💿 logiciel</b><br><small>codlog (PK), nomlog, prixlog, numproj (FK → projet)</small></div>
+<div class="mini"><b>🔗 realisation</b><br><small>numproj + numdev (PK composée, FK vers projet et developpeur)</small></div>
+</div>
+<div class="box">💡 <b>Relations :</b> un projet contient plusieurs logiciels (1,N) · un développeur peut travailler sur plusieurs projets et un projet a plusieurs développeurs (N,N via <code>realisation</code>).</div>
+</section>
+
+<section>
+<h2>5. Syntaxe (MySQL)</h2>
+<pre><code><span class="c">-- Changer le délimiteur pour pouvoir écrire ; dans la fonction</span>
+<span class="k">DELIMITER</span> //
+
+<span class="k">CREATE FUNCTION</span> nom_fonction(param1 TYPE, param2 TYPE)
+<span class="k">RETURNS</span> TYPE_RETOUR
+<span class="k">READS SQL DATA</span>          <span class="c">-- ou DETERMINISTIC (voir ci-dessous)</span>
+<span class="k">BEGIN</span>
+    <span class="k">DECLARE</span> v_resultat TYPE;
+    <span class="c">-- instructions SQL</span>
+    <span class="k">RETURN</span> v_resultat;
+<span class="k">END</span> //
+
+<span class="k">DELIMITER</span> ;
+
+<span class="c">-- Appel : dans un SELECT (et non avec CALL)</span>
+<span class="k">SELECT</span> nom_fonction(...);
+
+<span class="c">-- Suppression</span>
+<span class="k">DROP FUNCTION</span> nom_fonction;</code></pre>
+<div class="wrap">
+<table>
+<tr><th>Caractéristique</th><th>Quand l'utiliser ?</th></tr>
+<tr><td><code>DETERMINISTIC</code></td><td>Mêmes paramètres → <b>toujours</b> le même résultat, sans lire de table (ex : calcul de TVA).</td></tr>
+<tr><td><code>READS SQL DATA</code></td><td>La fonction <b>lit</b> des tables (<code>SELECT</code>) sans les modifier.</td></tr>
+<tr><td><code>MODIFIES SQL DATA</code></td><td>La fonction modifie des données (déconseillé dans une fonction).</td></tr>
+<tr><td><code>NO SQL</code></td><td>Aucune instruction SQL dans la fonction.</td></tr>
+</table>
+</div>
+<div class="box" style="border-left-color:var(--out)">⚠️ <b>Erreur fréquente :</b> si on oublie de déclarer <code>DETERMINISTIC</code>, <code>NO SQL</code> ou <code>READS SQL DATA</code>, MySQL peut refuser la création : <code>ERROR 1418 : This function has none of DETERMINISTIC, NO SQL, or READS SQL DATA in its declaration and binary logging is enabled</code>. Il suffit d'ajouter la bonne caractéristique.</div>
+</section>
+
+<section>
+<h2>6. Méthodologie simple (5 étapes)</h2>
+<ol class="steps">
+<li><b>Définir le besoin</b> : quelle valeur la fonction doit-elle calculer ? (ex : le prix TTC d'un logiciel)</li>
+<li><b>Choisir les paramètres et le type de retour</b> : qu'est-ce qui entre ? Quel type de valeur sort (<code>RETURNS</code>) ?</li>
+<li><b>Écrire</b> le corps dans <code>BEGIN ... END</code> avec un <code>RETURN</code> à la fin.</li>
+<li><b>Créer</b> la fonction (exécuter le <code>CREATE FUNCTION</code>).</li>
+<li><b>Appeler et tester</b> avec <code>SELECT</code>.</li>
+</ol>
+</section>
+
+<section>
+<h2>7. Un exemple très simple</h2>
+<p>Sans paramètre : renvoyer le nombre de développeurs.</p>
+<pre class="sql"><code>DELIMITER //
+CREATE FUNCTION nb_developpeurs()
+RETURNS INT
+READS SQL DATA
+BEGIN
+    DECLARE v_nb INT;
+    SELECT COUNT(*) INTO v_nb FROM developpeur;
+    RETURN v_nb;
+END //
+DELIMITER ;
+
+SELECT nb_developpeurs();</code></pre>
+</section>
+
+<section>
+<h2>8. Les paramètres d'une fonction</h2>
+<div class="box">👉 Dans une fonction, <b>tous les paramètres sont des entrées</b> (<span class="tag t-in">IN</span> implicite). On n'écrit <b>jamais</b> <code>IN</code>, <code>OUT</code> ni <code>INOUT</code> : le résultat sort par <code>RETURN</code>.</div>
+
+<h3><span class="tag t-in">IN</span> Exemple 1 : un paramètre</h3>
+<p>Compter les logiciels d'un projet donné.</p>
+<pre class="sql"><code>DELIMITER //
+CREATE FUNCTION nb_logiciels(p_numproj INT)
+RETURNS INT
+READS SQL DATA
+BEGIN
+    DECLARE v_nb INT;
+    SELECT COUNT(*) INTO v_nb
+    FROM logiciel
+    WHERE numproj = p_numproj;
+    RETURN v_nb;
+END //
+DELIMITER ;
+
+SELECT nb_logiciels(1);
+SELECT titreproj, nb_logiciels(numproj) AS nb FROM projet;   -- dans une requête</code></pre>
+
+<h3><span class="tag t-in">IN</span> Exemple 2 : plusieurs paramètres (calcul)</h3>
+<p>Calculer un prix TTC à partir d'un prix HT et d'un taux de TVA.</p>
+<pre class="sql"><code>DELIMITER //
+CREATE FUNCTION prix_ttc(p_prix DOUBLE, p_tva DOUBLE)
+RETURNS DOUBLE
+DETERMINISTIC
+BEGIN
+    RETURN p_prix + (p_prix * p_tva / 100);
+END //
+DELIMITER ;
+
+SELECT prix_ttc(1000, 20);                          -- 1200
+SELECT nomlog, prixlog, prix_ttc(prixlog, 20) AS ttc
+FROM logiciel;</code></pre>
+
+<h3><span class="tag t-in">IN</span> Exemple 3 : avec une condition (IF)</h3>
+<p>Classer un logiciel selon son prix.</p>
+<pre class="sql"><code>DELIMITER //
+CREATE FUNCTION categorie_prix(p_prix DOUBLE)
+RETURNS VARCHAR(20)
+DETERMINISTIC
+BEGIN
+    DECLARE v_cat VARCHAR(20);
+    IF p_prix &lt; 1000 THEN
+        SET v_cat = 'Économique';
+    ELSEIF p_prix &lt;= 5000 THEN
+        SET v_cat = 'Standard';
+    ELSE
+        SET v_cat = 'Premium';
+    END IF;
+    RETURN v_cat;
+END //
+DELIMITER ;
+
+SELECT nomlog, prixlog, categorie_prix(prixlog) FROM logiciel;</code></pre>
+<div class="box" style="border-left-color:var(--out)">⚠️ <b>Erreur fréquente :</b> les paramètres et variables ne doivent pas porter le même nom qu'une <b>colonne</b>. C'est pourquoi on utilise des préfixes : <code>p_</code> pour les paramètres, <code>v_</code> pour les variables.</div>
+</section>
+
+<section>
+<h2>9. Que retourne une fonction ? Une seule valeur</h2>
+<p>Une fonction renvoie <b>une seule valeur</b> (un nombre, un texte, une date...), dont le type est donné par <code>RETURNS</code>. Elle ne peut <b>pas</b> renvoyer une liste de lignes.</p>
+<pre class="sql"><code>-- ❌ Faux : un SELECT qui renvoie des lignes est interdit dans une fonction
+CREATE FUNCTION liste_devs() RETURNS INT READS SQL DATA
+BEGIN
+    SELECT * FROM developpeur;
+    RETURN 1;
+END
+-- Erreur MySQL : Not allowed to return a result set from a function
+
+-- ❌ Faux : une fonction ne s'appelle pas avec CALL
+CALL nb_logiciels(1);
+
+-- ✅ Correct : on l'appelle dans un SELECT ou une condition
+SELECT nb_logiciels(1);
+SELECT nomlog FROM logiciel WHERE prix_ttc(prixlog, 20) &gt; 6000;</code></pre>
+<div class="box">💡 <b>Avantage majeur :</b> comme elle renvoie une valeur, une fonction s'utilise <b>partout où une valeur est attendue</b> : dans la liste du <code>SELECT</code>, dans un <code>WHERE</code>, un <code>ORDER BY</code>, ou même dans une autre fonction.</div>
+
+<h3>Fonction ou procédure ?</h3>
+<div class="wrap">
+<table>
+<tr><th></th><th>Fonction</th><th>Procédure</th></tr>
+<tr><td><b>Appel</b></td><td><code>SELECT ma_fonction(...)</code></td><td><code>CALL ma_procedure(...)</code></td></tr>
+<tr><td><b>Paramètres</b></td><td>IN seulement</td><td>IN, OUT, INOUT</td></tr>
+<tr><td><b>Résultat</b></td><td><b>Une seule valeur</b> (<code>RETURN</code>)</td><td>Zéro, une ou plusieurs valeurs (OUT) et/ou <b>des lignes</b> (<code>SELECT</code>)</td></tr>
+<tr><td><b>Dans un SELECT / WHERE</b></td><td>✅ Oui</td><td>❌ Non</td></tr>
+<tr><td><b>Usage typique</b></td><td>Calculer une valeur</td><td>Exécuter un traitement (ajouts, modifications, rapports)</td></tr>
+</table>
+</div>
+</section>
+
+<section>
+<h2>10. À retenir</h2>
+<ul>
+<li>Une fonction = un <b>sous-programme SQL enregistré</b> qui <b>renvoie une seule valeur</b> avec <code>RETURN</code>.</li>
+<li>On déclare le type du résultat avec <code>RETURNS</code> et une caractéristique (<code>DETERMINISTIC</code> ou <code>READS SQL DATA</code>).</li>
+<li>Les paramètres sont <b>toujours des entrées</b> : pas de <code>IN</code>, <code>OUT</code> ni <code>INOUT</code>.</li>
+<li>On l'appelle avec <b><code>SELECT</code></b> (ou dans une expression), <b>jamais avec <code>CALL</code></b>.</li>
+<li>Elle ne peut pas renvoyer une liste de lignes : pour cela, on utilise une <b>procédure stockée</b>.</li>
+<li>Avantages : réutilisation, lisibilité, cohérence, maintenance.</li>
+</ul>
+</section>
+
+<section>
+<h2>11. Exercice d'application</h2>
+<p>Sur notre base (<code>developpeur</code>, <code>projet</code>, <code>logiciel</code>, <code>realisation</code>), créez les fonctions suivantes, puis testez-les avec <code>SELECT</code>.</p>
+<pre>EXERCICE : Fonctions stockées (MySQL)
+
+Q1. (Sans paramètre)
+    Créer la fonction  nb_projets()  qui renvoie le nombre
+    de projets.
+
+Q2. (1 paramètre)
+    Créer la fonction  nb_logiciels_projet(p_numproj)  qui
+    renvoie le nombre de logiciels d'un projet.
+
+Q3. (Calcul)
+    Créer la fonction  prix_remise(p_prix, p_pourcent)  qui
+    renvoie le prix après une remise en pourcentage.
+    Tester : prix 500 et remise 20 %  →  400.
+    Puis l'appliquer à tous les logiciels dans un SELECT.
+
+Q4. (Condition)
+    Créer la fonction  niveau_prix(p_prix)  qui renvoie :
+    'Bas' si le prix est inférieur à 1000,
+    'Moyen' s'il est compris entre 1000 et 5000 (inclus),
+    'Élevé' sinon.
+    Afficher le nom, le prix et le niveau de chaque logiciel.
+
+Q5. (Requête dans la fonction)
+    Créer la fonction  prix_total_projet(p_numproj)  qui
+    renvoie la somme des prix des logiciels d'un projet
+    (0 s'il n'y en a aucun).
+
+Q6. (Jointure)
+    Créer la fonction  nb_developpeurs_projet(p_numproj)
+    qui renvoie le nombre de développeurs d'un projet.
+    Afficher ensuite chaque projet avec son nombre de
+    développeurs.
+
+BONUS.
+    Créer la fonction  nom_developpeur(p_numdev)  qui
+    renvoie le nom d'un développeur, puis afficher le
+    contenu de la table realisation avec le NOM du
+    développeur au lieu de son numéro.</pre>
+
+<details>
+<summary><b>👀 Voir la correction (formateur)</b></summary>
+<pre class="sql"><code>-- Q1
+DELIMITER //
+CREATE FUNCTION nb_projets()
+RETURNS INT
+READS SQL DATA
+BEGIN
+    DECLARE v_nb INT;
+    SELECT COUNT(*) INTO v_nb FROM projet;
+    RETURN v_nb;
+END //
+
+-- Q2
+CREATE FUNCTION nb_logiciels_projet(p_numproj INT)
+RETURNS INT
+READS SQL DATA
+BEGIN
+    DECLARE v_nb INT;
+    SELECT COUNT(*) INTO v_nb FROM logiciel WHERE numproj = p_numproj;
+    RETURN v_nb;
+END //
+
+-- Q3
+CREATE FUNCTION prix_remise(p_prix DOUBLE, p_pourcent DOUBLE)
+RETURNS DOUBLE
+DETERMINISTIC
+BEGIN
+    RETURN p_prix - (p_prix * p_pourcent / 100);
+END //
+
+-- Q4
+CREATE FUNCTION niveau_prix(p_prix DOUBLE)
+RETURNS VARCHAR(10)
+DETERMINISTIC
+BEGIN
+    DECLARE v_niveau VARCHAR(10);
+    IF p_prix &lt; 1000 THEN
+        SET v_niveau = 'Bas';
+    ELSEIF p_prix &lt;= 5000 THEN
+        SET v_niveau = 'Moyen';
+    ELSE
+        SET v_niveau = 'Élevé';
+    END IF;
+    RETURN v_niveau;
+END //
+
+-- Q5
+CREATE FUNCTION prix_total_projet(p_numproj INT)
+RETURNS DOUBLE
+READS SQL DATA
+BEGIN
+    DECLARE v_total DOUBLE;
+    SELECT IFNULL(SUM(prixlog), 0) INTO v_total
+    FROM logiciel
+    WHERE numproj = p_numproj;
+    RETURN v_total;
+END //
+
+-- Q6
+CREATE FUNCTION nb_developpeurs_projet(p_numproj INT)
+RETURNS INT
+READS SQL DATA
+BEGIN
+    DECLARE v_nb INT;
+    SELECT COUNT(*) INTO v_nb FROM realisation WHERE numproj = p_numproj;
+    RETURN v_nb;
+END //
+
+-- BONUS
+CREATE FUNCTION nom_developpeur(p_numdev INT)
+RETURNS VARCHAR(32)
+READS SQL DATA
+BEGIN
+    DECLARE v_nom VARCHAR(32);
+    SELECT nomdev INTO v_nom FROM developpeur WHERE numdev = p_numdev;
+    RETURN v_nom;
+END //
+DELIMITER ;
+
+-- Tests
+SELECT nb_projets();
+SELECT nb_logiciels_projet(1);
+SELECT prix_remise(500, 20);                              -- 400
+SELECT nomlog, prixlog, prix_remise(prixlog, 10) AS prix_remise FROM logiciel;
+SELECT nomlog, prixlog, niveau_prix(prixlog) AS niveau FROM logiciel;
+SELECT prix_total_projet(1);
+SELECT titreproj, nb_developpeurs_projet(numproj) AS nb_devs FROM projet;
+SELECT nom_developpeur(numdev) AS developpeur, numproj FROM realisation;</code></pre>
+</details>
+</section>
+
+</main>
+<script>
+(function(){
+var kw="CREATE|FUNCTION|RETURNS|RETURN|DETERMINISTIC|READS|SQL|DATA|DELIMITER|BEGIN|END|DECLARE|IF|THEN|ELSEIF|ELSE|SET|SELECT|FROM|WHERE|INTO|JOIN|ON|SUM|COUNT|IFNULL|CALL|AS|INT|DOUBLE|VARCHAR|DROP";
+var re=new RegExp("(--[^\\n]*)|('(?:[^']|'')*')|\\b("+kw+")\\b","g");
+document.querySelectorAll("pre.sql code").forEach(function(el){
+var t=el.textContent.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+el.innerHTML=t.replace(re,function(m,c,s,k){return c?'<span class="c">'+c+'</span>':s?'<span class="s">'+s+'</span>':'<span class="k">'+k+'</span>';});
+});
+})();
+</script>
+</body>
+</html>

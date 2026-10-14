@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cours : verrouillage des tables (LOCK TABLES)</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1f2430;--mut:#5d6575;--card:#fff;--bd:#e3e0d8;--ac:#0f6e6e;--code:#f1efe9;--ok:#1d7a46;--ko:#b3361f;--wa:#a8670c;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181f;--fg:#e7e9ee;--mut:#9aa3b2;--card:#1c222c;--bd:#2c3441;--ac:#4fc3c3;--code:#10141a;--ok:#5cc88b;--ko:#f08a77;--wa:#e5b25d}}
+:root[data-theme="dark"]{--bg:#14181f;--fg:#e7e9ee;--mut:#9aa3b2;--card:#1c222c;--bd:#2c3441;--ac:#4fc3c3;--code:#10141a;--ok:#5cc88b;--ko:#f08a77;--wa:#e5b25d}
+html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:16px 16px 60px}
+h1{font-size:1.8rem;margin:.2em 0}
+h2{font-size:1.3rem;margin:1.8em 0 .5em;color:var(--ac);border-bottom:2px solid var(--bd);padding-bottom:.2em}
+.part{background:var(--ac);color:#fff;border-radius:10px;padding:8px 16px;font-weight:700;margin:2em 0 0}
+:root[data-theme="dark"] .part{color:#10141a}
+.sub{color:var(--mut);margin:0}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px 16px;margin:12px 0}
+.ok{border-left:4px solid var(--ok)}.ko{border-left:4px solid var(--ko)}.wa{border-left:4px solid var(--wa)}.in{border-left:4px solid var(--ac)}
+pre{background:var(--code);border:1px solid var(--bd);border-radius:8px;padding:12px;overflow-x:auto;font:14px/1.5 ui-monospace,Menlo,Consolas,monospace;margin:10px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font:.92em ui-monospace,Menlo,Consolas,monospace}
+pre code{background:none;padding:0}
+.t{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:460px}
+th,td{border:1px solid var(--bd);padding:7px 10px;text-align:left;vertical-align:top;font-size:.95rem}th{background:var(--code)}
+details{background:var(--card);border:1px solid var(--bd);border-radius:10px;margin:8px 0;padding:2px 14px}
+summary{cursor:pointer;font-weight:600;padding:8px 0}details p{margin:.3em 0 .8em}
+nav a{color:var(--ac);margin-right:14px;font-weight:600}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.sess{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px}
+.sess h3{font-size:1.05rem;margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.badge{font-size:.8rem;padding:2px 10px;border-radius:99px;border:1px solid var(--bd);color:var(--mut)}
+.badge.READ{color:var(--ok);border-color:var(--ok)}.badge.WRITE{color:var(--ko);border-color:var(--ko)}
+.row{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.lab{font-size:.78rem;color:var(--mut);margin-top:8px}
+button{font:inherit;cursor:pointer;border:1px solid var(--bd);background:var(--bg);color:var(--fg);border-radius:8px;padding:7px 10px}
+button:hover:not(:disabled){border-color:var(--ac)}button:disabled{opacity:.45;cursor:not-allowed}
+.act{display:flex;flex-direction:column;align-items:center;min-width:78px;gap:2px}
+.act .i{font-size:1.4rem;line-height:1}.act .l{font-size:.75rem}.act .p{font-size:1.1rem}
+.term{background:#0c0f14;color:#d6dbe3;border-radius:8px;padding:10px;height:220px;overflow-y:auto;font:12.5px/1.45 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
+.term .e{color:#ff8b7a}.term .o{color:#7fe3a1}.term .w{color:#f1c36a}.term .c{color:#8fb8ff}
+.leg{font-size:.85rem;color:var(--mut)}
+</style>
+</head>
+<body>
+<main>
+<h1>🔒 Le verrouillage des tables en MySQL</h1>
+<p class="sub">Module M203 – Gestion de données · base <code>Glogiciels</code></p>
+<nav><a href="#t1">1. Définition</a><a href="#t2">2. Syntaxe</a><a href="#t3">3. Types</a><a href="#t4">4. Questions</a><a href="#p">5. Pratique</a></nav>
+
+<div class="part">PARTIE 1 · THÉORIE</div>
+
+<h2 id="t1">1. Qu'est-ce que le verrouillage des tables ?</h2>
+<p>Dans une base de données, <b>plusieurs utilisateurs</b> travaillent en même temps sur les mêmes tables. Sans règle, deux personnes peuvent modifier la même donnée au même moment et créer des erreurs.</p>
+<div class="card in"><b>Analogie :</b> un document partagé. Avec un verrou <b>READ</b>, tout le monde peut le <i>lire</i> mais personne ne peut le modifier. Avec un verrou <b>WRITE</b>, une seule personne l'a en main : les autres attendent.</div>
+<p><b>Verrouiller une table</b> = réserver cette table pour <b>ma session</b> afin de contrôler ce que les <b>autres sessions</b> ont le droit d'y faire. Une <b>session</b> est une connexion ouverte à MySQL (par exemple une fenêtre CMD). Deux fenêtres CMD = deux sessions différentes, même avec le même utilisateur.</p>
+
+<h2 id="t2">2. Syntaxe : comment verrouiller ?</h2>
+<pre><code>LOCK TABLES nom_table READ | WRITE;     -- poser le verrou
+UNLOCK TABLES;                          -- libérer tous les verrous</code></pre>
+<pre><code>LOCK TABLES developpeur READ;
+LOCK TABLES developpeur WRITE;</code></pre>
+<h3>Une seule table ou plusieurs ?</h3>
+<div class="card ok"><b>On peut verrouiller plusieurs tables</b> avec <u>une seule</u> instruction, séparées par des virgules, chacune avec son propre type de verrou :</div>
+<pre><code>LOCK TABLES developpeur READ, projet READ, logiciel WRITE;</code></pre>
+<div class="card ko"><b>Piège classique :</b> deux <code>LOCK TABLES</code> successifs ne s'additionnent pas. Le second <b>libère d'abord</b> les verrous du premier.</div>
+<pre><code>LOCK TABLES developpeur READ;
+LOCK TABLES projet READ;      -- developpeur n'est plus verrouillé !</code></pre>
+<div class="card wa"><b>Règle :</b> une fois <code>LOCK TABLES</code> exécuté, la session ne peut utiliser <b>que les tables verrouillées</b>. Pour une jointure, il faut donc verrouiller toutes les tables de la requête (et les alias, par exemple <code>projet AS p READ</code>). Sinon : <code>ERROR 1100: Table 'x' was not locked with LOCK TABLES</code>.</div>
+
+<h3>Comment libérer : UNLOCK TABLES</h3>
+<pre><code>UNLOCK TABLES;</code></pre>
+<div class="card ko"><b>Pas de nom de table.</b> <code>UNLOCK TABLES</code> libère <u>tous</u> les verrous de la session d'un coup. On ne peut pas déverrouiller une seule table : <code>UNLOCK TABLES developpeur</code> n'existe pas.</div>
+<p><code>TABLE</code> et <code>TABLES</code> sont synonymes : <code>LOCK TABLE</code> et <code>UNLOCK TABLE</code> fonctionnent aussi. On écrit <code>TABLES</code> par convention.</p>
+<p><b>Pour n'en libérer qu'une</b>, on refait un <code>LOCK TABLES</code> avec seulement les tables à garder (il libère d'abord tous les anciens verrous) :</p>
+<pre><code>LOCK TABLES developpeur READ, projet WRITE;
+-- je n'ai plus besoin de developpeur :
+LOCK TABLES projet WRITE;     -- developpeur libérée, projet reverrouillée</code></pre>
+
+<h2 id="t3">3. Les deux types de verrous</h2>
+<div class="t"><table>
+<tr><th></th><th>READ</th><th>WRITE</th></tr>
+<tr><td><b>Moi (qui verrouille)</b></td><td>🔍 lire seulement ; 🚫 écrire (erreur)</td><td>🔍 ➕ ✏️ 🗑️ tout faire</td></tr>
+<tr><td><b>Les autres sessions</b></td><td>🔍 lire ; ⏳ écrire attend</td><td>⏳ rien : lecture et écriture attendent</td></tr>
+<tr><td><b>Plusieurs sessions ?</b></td><td>Oui, plusieurs READ en même temps</td><td>Non, un seul WRITE à la fois</td></tr>
+</table></div>
+
+<h2 id="t4">4. Questions fréquentes et idées fausses</h2>
+<details><summary>❓ Le verrou bloque-t-il toute la base de données ?</summary><p>Non. Il ne concerne que les <b>tables nommées</b> dans <code>LOCK TABLES</code>. Les autres tables restent accessibles aux autres sessions.</p></details>
+<details><summary>❓ Un verrou READ empêche-t-il les autres de lire ?</summary><p>Non. READ = <b>tout le monde lit</b>. Il bloque seulement les écritures (INSERT, UPDATE, DELETE).</p></details>
+<details><summary>❓ Mon propre verrou READ m'empêche-t-il d'écrire ?</summary><p>Oui ! Avec READ, même moi je ne peux pas écrire : erreur 1099. Pour modifier, il faut un verrou WRITE.</p></details>
+<details><summary>❓ L'autre session reçoit-elle une erreur avec mon WRITE ?</summary><p>Non, elle <b>attend</b> (la commande reste « figée ») jusqu'à mon <code>UNLOCK TABLES</code>. Une erreur de délai n'arrive qu'après un très long temps d'attente.</p></details>
+<details><summary>❓ Après LOCK TABLES, puis-je lire les autres tables ? Et les autres sessions ?</summary><p><b>Ma session :</b> non. Elle ne peut utiliser que les tables verrouillées (erreur 1100 sinon). Il faut tout verrouiller dès le départ.</p><p><b>Les autres sessions :</b> oui. Elles peuvent lire <u>et écrire</u> librement dans les tables <b>non verrouillées</b> : mon verrou ne les concerne pas.</p><pre><code>-- Session A
+LOCK TABLES developpeur READ;
+SELECT * FROM projet;        -- ❌ ERROR 1100 (projet non verrouillée pour A)
+
+-- Session B (en même temps)
+SELECT * FROM projet;        -- ✅ OK
+UPDATE projet SET ...;       -- ✅ OK
+SELECT * FROM developpeur;   -- ✅ OK (READ de A)
+UPDATE developpeur SET ...;  -- ⏳ attend (READ de A)</code></pre></details>
+<details><summary>❓ Quand le verrou est-il libéré ?</summary><p>Par <code>UNLOCK TABLES</code>, par un nouveau <code>LOCK TABLES</code>, par <code>START TRANSACTION</code>, ou quand la connexion se ferme.</p></details>
+<details><summary>❓ Un autre utilisateur peut-il libérer mon verrou ?</summary><p>Non. Le verrou appartient à <b>ma session</b>. Seule elle (ou sa fermeture, ou un <code>KILL</code> par l'administrateur) peut le libérer.</p></details>
+<details><summary>❓ Que se passe-t-il si j'oublie UNLOCK TABLES ?</summary><p>Les autres sessions restent bloquées tant que ma connexion reste ouverte. Pensez toujours à libérer le verrou rapidement.</p></details>
+<details><summary>❓ Le verrouillage remplace-t-il les droits (GRANT) ?</summary><p>Non. Le verrou règle les accès <b>simultanés</b>, pas <b>qui</b> a le droit d'accéder. Il faut en plus le privilège <code>LOCK TABLES</code> pour l'utiliser.</p></details>
+<details><summary>❓ Est-ce la meilleure méthode avec InnoDB ?</summary><p>Pas toujours. Avec InnoDB, on préfère les <b>transactions</b> avec <code>SELECT … FOR UPDATE</code> (verrou sur des lignes, plus fin). <code>LOCK TABLES</code> reste utile pour comprendre le principe, pour MyISAM et pour la maintenance.</p></details>
+
+<div class="part" id="p">PARTIE 2 · PRATIQUE : DEUX SESSIONS EN PARALLÈLE</div>
+<p>Table <code>developpeur</code>. Session A à gauche, session B à droite. Cliquez sur les boutons.</p>
+<p class="leg">Légende : ✅ permis · ❌ refusé (erreur) · ⏳ bloqué, en attente de libération du verrou &nbsp; <button onclick="reset()">↺ Réinitialiser</button></p>
+<div class="card in" id="info"></div>
+<div class="grid"><section class="sess" id="sA"></section><section class="sess" id="sB"></section></div>
+<div class="card in"><b>Scénario conseillé :</b> ① A : <code>LOCK … READ</code> → testez les 4 actions dans A puis dans B. ② A : <code>UNLOCK</code>. ③ A : <code>LOCK … WRITE</code> → testez B (il reste bloqué). ④ A : <code>UNLOCK</code> → la commande de B s'exécute.</div>
+</main>
+<script>
+const OPS={select:{i:'🔍',l:'SELECT',w:0,sql:'SELECT * FROM developpeur;',ok:'5 rows in set (0.00 sec)'},
+insert:{i:'➕',l:'INSERT',w:1,sql:"INSERT INTO developpeur VALUES (6,'Alami','Rabat','a@x.ma','0600');",ok:'Query OK, 1 row affected (0.00 sec)'},
+update:{i:'✏️',l:'UPDATE',w:1,sql:"UPDATE developpeur SET nomdev='Benani' WHERE numdev=1;",ok:'Query OK, 1 row affected (0.00 sec)'},
+delete:{i:'🗑️',l:'DELETE',w:1,sql:'DELETE FROM developpeur WHERE numdev=6;',ok:'Query OK, 1 row affected (0.00 sec)'}};
+const N={A:'Session A (CMD gauche)',B:'Session B (CMD droite)'},other=s=>s==='A'?'B':'A',ICON={ok:'✅',err:'❌',wait:'⏳'};
+let S;
+function reset(){S={A:{lock:null,pend:null,log:[]},B:{lock:null,pend:null,log:[]}};draw()}
+function check(s,op){const m=S[s].lock,h=S[other(s)].lock,w=OPS[op].w;
+if(m==='WRITE')return 'ok';if(m==='READ')return w?'err':'ok';
+if(h==='WRITE')return 'wait';if(h==='READ'&&w)return 'wait';return 'ok'}
+function checkLock(s,t){const h=S[other(s)].lock;if(t==='WRITE'&&h)return 'wait';if(t==='READ'&&h==='WRITE')return 'wait';return 'ok'}
+const L=(s,c,t)=>S[s].log.push([c,t]);
+function exec(s,op){const r=check(s,op);L(s,'c','mysql> '+OPS[op].sql);
+if(r==='ok')L(s,'o',OPS[op].ok);
+else if(r==='err')L(s,'e',"ERROR 1099 (HY000): Table 'developpeur' was locked with a READ lock and can't be updated");
+else{S[s].pend={op};L(s,'w','⏳ … la commande attend le verrou de la session '+other(s))}}
+function lock(s,t){L(s,'c','mysql> LOCK TABLES developpeur '+t+';');S[s].lock=null;
+if(checkLock(s,t)==='ok'){S[s].lock=t;L(s,'o','Query OK, 0 rows affected (0.00 sec)')}
+else{S[s].pend={lock:t};L(s,'w','⏳ … LOCK attend la libération du verrou de la session '+other(s))}
+flushAll()}
+function unlock(s){L(s,'c','mysql> UNLOCK TABLES;');S[s].lock=null;L(s,'o','Query OK, 0 rows affected (0.00 sec)');flushAll()}
+function flushAll(){for(let k=0;k<2;k++)for(const s of ['A','B']){const p=S[s].pend;if(!p)continue;
+if(p.lock){if(checkLock(s,p.lock)==='ok'){S[s].pend=null;S[s].lock=p.lock;L(s,'o','Query OK (verrou obtenu après attente)')}}
+else{const r=check(s,p.op);if(r!=='wait'){S[s].pend=null;L(s,r==='ok'?'o':'e',(r==='ok'?OPS[p.op].ok:'ERROR 1099')+'  ← exécutée après libération du verrou')}}}
+draw()}
+function act(s,op){exec(s,op);draw()}
+function draw(){
+for(const s of ['A','B']){const d=S[s],blk=!!d.pend;
+let h=`<h3>🖥️ ${N[s]}<span class="badge ${d.lock||''}">${d.lock?'Verrou '+d.lock:'aucun verrou'}${blk?' · ⏳ bloquée':''}</span></h3>
+<div class="lab">Verrous</div><div class="row">
+<button ${blk?'disabled':''} onclick="lock('${s}','READ')">🔒 LOCK … READ</button>
+<button ${blk?'disabled':''} onclick="lock('${s}','WRITE')">🔐 LOCK … WRITE</button>
+<button ${blk?'disabled':''} onclick="unlock('${s}')">🔓 UNLOCK TABLES</button></div>
+<div class="lab">Actions (l'icône = résultat si on clique maintenant)</div><div class="row">`;
+for(const k in OPS)h+=`<button class="act" ${blk?'disabled':''} onclick="act('${s}','${k}')"><span class="i">${OPS[k].i}</span><span class="l">${OPS[k].l}</span><span class="p">${ICON[check(s,k)]}</span></button>`;
+h+=`</div><div class="term" id="t${s}">${d.log.length?d.log.map(x=>`<div class="${x[0]}">${x[1].replace(/</g,'&lt;')}</div>`).join(''):'<div class="c">mysql&gt; _</div>'}</div>`;
+document.getElementById('s'+s).innerHTML=h;const t=document.getElementById('t'+s);t.scrollTop=t.scrollHeight}
+const a=S.A.lock,b=S.B.lock;let m='Aucun verrou : les deux sessions peuvent tout faire.';
+if(a||b){const o=a||b,n=a?'A':'B',x=a?'B':'A';
+m=o==='READ'?`<b>${n} détient un verrou READ</b> : ${n} peut seulement lire (🔍) ; ses écritures sont refusées ❌. ${x} peut lire, mais ses écritures attendent ⏳.`
+:`<b>${n} détient un verrou WRITE</b> : ${n} peut tout faire (🔍 ➕ ✏️ 🗑️). ${x} ne peut rien faire : tout est en attente ⏳ jusqu'à l'UNLOCK.`}
+document.getElementById('info').innerHTML=m}
+reset();
+</script>
+<style>.hk{color:#0b5fa5}.hc{color:#6b7280;font-style:italic}.hs{color:#b3361f}.hn{color:#8a5a00}.hf{color:#6d3fc4}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .hk{color:#7dd3fc}:root:not([data-theme="light"]) .hc{color:#94a3b8}:root:not([data-theme="light"]) .hs{color:#fca5a5}:root:not([data-theme="light"]) .hn{color:#fcd34d}:root:not([data-theme="light"]) .hf{color:#c4b5fd}}:root[data-theme="dark"] .hk{color:#7dd3fc}:root[data-theme="dark"] .hc{color:#94a3b8}:root[data-theme="dark"] .hs{color:#fca5a5}:root[data-theme="dark"] .hn{color:#fcd34d}:root[data-theme="dark"] .hf{color:#c4b5fd}</style>
+<script>
+(function(){
+var KW="CREATE|TEMPORARY|TABLE|TABLES|VIEW|REPLACE|OR|DROP|ALTER|INSERT|INTO|VALUES|UPDATE|DELETE|SELECT|DISTINCT|FROM|WHERE|AND|NOT|NULL|IS|AS|JOIN|INNER|LEFT|RIGHT|ON|GROUP|BY|ORDER|HAVING|LIMIT|SET|LOCK|UNLOCK|READ|WRITE|LOCAL|PRIMARY|KEY|FOREIGN|REFERENCES|DEFAULT|PROCEDURE|FUNCTION|RETURNS|RETURN|DETERMINISTIC|DELIMITER|BEGIN|END|DECLARE|IF|THEN|ELSEIF|ELSE|CASE|WHEN|WHILE|DO|REPEAT|UNTIL|LOOP|LEAVE|ITERATE|CALL|IN|OUT|INOUT|INT|DECIMAL|DATE|VARCHAR|DOUBLE|SHOW|USE|DATABASE|START|TRANSACTION|COMMIT|ROLLBACK|WITH|CHECK|OPTION|EXISTS";
+var re=new RegExp("(--[^\\n]*)|('(?:[^'\\\\]|\\\\.|'')*')|\\b(\\d+(?:\\.\\d+)?)\\b|\\b("+KW+")\\b|\\b([A-Za-z_]+)(?=\\()","g");
+document.querySelectorAll("pre > code").forEach(function(el){
+  if(el.querySelector("span"))return;
+  var t=el.textContent.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  el.innerHTML=t.replace(re,function(m,c,s,n,k,f){
+    var cl=c?"hc":s?"hs":n?"hn":k?"hk":"hf";
+    return '<span class="'+cl+'">'+m+'</span>';
+  });
+});
+})();
+</script>
+</body>
+</html>

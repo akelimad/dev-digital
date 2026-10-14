@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Structures de contrôle en MySQL</title>
+<style>
+:root{--bg:#f7f8fb;--card:#fff;--txt:#1f2937;--mut:#6b7280;--acc:#2563eb;--accbg:#e8f0fe;--code:#0f172a;--codetxt:#e2e8f0;--bd:#e5e7eb;--ok:#15803d;--warn:#b45309;--warnbg:#fef3c7;}
+@media (prefers-color-scheme:dark){:root{--bg:#0f172a;--card:#1e293b;--txt:#e5e7eb;--mut:#94a3b8;--acc:#60a5fa;--accbg:#1e3a5f;--code:#020617;--codetxt:#e2e8f0;--bd:#334155;--ok:#4ade80;--warn:#fbbf24;--warnbg:#3b2f0b;}}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--txt);line-height:1.65}
+header{background:var(--acc);color:#fff;padding:2rem 1rem;text-align:center}
+header h1{margin:0 0 .3rem;font-size:1.8rem}
+header p{margin:0;opacity:.9}
+main{max-width:860px;margin:0 auto;padding:1rem}
+section{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:1.2rem 1.4rem;margin:1.2rem 0}
+h2{margin-top:0;color:var(--acc);font-size:1.3rem}
+h3{margin:1.2rem 0 .4rem;font-size:1.05rem}
+pre{background:var(--code);color:var(--codetxt);padding:1rem;border-radius:8px;overflow-x:auto;font-size:.88rem;line-height:1.5;max-width:100%}
+code{font-family:ui-monospace,Consolas,monospace}
+p code,li code,td code{background:var(--accbg);color:var(--acc);padding:.1rem .35rem;border-radius:4px;font-size:.9em}
+.note{background:var(--accbg);border-left:4px solid var(--acc);padding:.7rem 1rem;border-radius:6px;margin:1rem 0}
+.warn{background:var(--warnbg);border-left:4px solid var(--warn);padding:.7rem 1rem;border-radius:6px;margin:1rem 0}
+.res{color:var(--ok);font-weight:600;font-size:.9rem;margin:.3rem 0}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{border:1px solid var(--bd);padding:.5rem .7rem;text-align:left}
+th{background:var(--accbg)}
+ol li,ul li{margin:.3rem 0}
+footer{text-align:center;color:var(--mut);padding:1.5rem;font-size:.85rem}
+</style>
+</head>
+<body>
+<header>
+<h1>Les structures de contrôle en MySQL</h1>
+<p>IF · CASE · WHILE · REPEAT · LOOP — M203 Gestion de données</p>
+</header>
+<main>
+
+<section>
+<h2>1. Définition</h2>
+<p>Une <strong>structure de contrôle</strong> permet de <strong>décider</strong> quelles instructions exécuter (condition) ou de <strong>répéter</strong> des instructions (boucle), au lieu de les exécuter simplement l'une après l'autre.</p>
+<ul>
+<li><strong>Structures conditionnelles</strong> : <code>IF</code>, <code>CASE</code></li>
+<li><strong>Structures répétitives (boucles)</strong> : <code>WHILE</code>, <code>REPEAT</code>, <code>LOOP</code></li>
+</ul>
+<div class="warn">Les structures de contrôle s'utilisent <strong>à l'intérieur d'un programme stocké</strong> (procédure, fonction, trigger, événement), entre <code>BEGIN</code> et <code>END</code>. On ne peut pas écrire un <code>IF ... END IF</code> directement dans une requête seule.</div>
+</section>
+
+<section>
+<h2>2. Pourquoi les utiliser ? (utilité)</h2>
+<ul>
+<li>Faire des <strong>choix</strong> selon les données (prix, dates, valeurs saisies).</li>
+<li><strong>Répéter</strong> un calcul sans recopier le code.</li>
+<li>Rendre une procédure ou une fonction <strong>intelligente</strong> : elle réagit au lieu d'exécuter toujours la même chose.</li>
+<li>Contrôler les valeurs avant de modifier la base.</li>
+</ul>
+</section>
+
+<section>
+<h2>3. Cas d'utilisation</h2>
+<div class="tw"><table>
+<tr><th>Besoin</th><th>Structure</th></tr>
+<tr><td>Classer un logiciel (économique / moyen / cher)</td><td><code>IF ... ELSEIF ... ELSE</code></td></tr>
+<tr><td>Donner l'état d'un projet (terminé, en cours...)</td><td><code>CASE</code></td></tr>
+<tr><td>Répéter tant qu'une condition est vraie</td><td><code>WHILE</code></td></tr>
+<tr><td>Répéter au moins une fois, puis tester</td><td><code>REPEAT ... UNTIL</code></td></tr>
+<tr><td>Boucle libre qu'on arrête soi-même</td><td><code>LOOP</code> + <code>LEAVE</code></td></tr>
+</table></div>
+<p>Les exemples de cette page utilisent la base <strong>Glogiciels</strong> : <code>developpeur</code>, <code>projet</code>, <code>logiciel</code>, <code>realisation</code>.</p>
+</section>
+
+<section>
+<h2>4. Syntaxe et exemples</h2>
+
+<h3>4.1 IF — ELSEIF — ELSE</h3>
+<pre><code>IF condition1 THEN
+    instructions;
+ELSEIF condition2 THEN
+    instructions;
+ELSE
+    instructions;
+END IF;</code></pre>
+<p><strong>Exemple :</strong> classer un logiciel selon son prix.</p>
+<pre><code>DELIMITER //
+CREATE PROCEDURE categorie_logiciel(IN p_codlog INT)
+BEGIN
+    DECLARE v_prix DECIMAL(10,2);
+
+    SELECT prixlog INTO v_prix
+    FROM logiciel
+    WHERE codlog = p_codlog;
+
+    IF v_prix &gt;= 1000 THEN
+        SELECT 'Logiciel cher' AS categorie;
+    ELSEIF v_prix &gt;= 300 THEN
+        SELECT 'Logiciel moyen' AS categorie;
+    ELSE
+        SELECT 'Logiciel économique' AS categorie;
+    END IF;
+END //
+DELIMITER ;
+
+CALL categorie_logiciel(1);</code></pre>
+<div class="note">Attention à l'écriture : <code>ELSEIF</code> en un seul mot, et chaque <code>IF</code> se termine par <code>END IF;</code>.</div>
+
+<h3>4.2 CASE (2 formes)</h3>
+<p><code>CASE</code> existe sous <strong>deux formes</strong> : <strong>avec paramètre</strong> (on compare une valeur) et <strong>sans paramètre</strong> (on écrit des conditions complètes).</p>
+
+<p><strong>Forme 1 : CASE avec paramètre</strong> (on compare une expression à des valeurs, uniquement par égalité <code>=</code>)</p>
+<pre><code>CASE expression
+    WHEN valeur1 THEN instructions;
+    WHEN valeur2 THEN instructions;
+    ELSE instructions;
+END CASE;</code></pre>
+<p><strong>Exemple :</strong> afficher le trimestre de début d'un projet.</p>
+<pre><code>DELIMITER //
+CREATE PROCEDURE trimestre_projet(IN p_numproj INT)
+BEGIN
+    DECLARE v_deb DATE;
+
+    SELECT datedeb INTO v_deb
+    FROM projet
+    WHERE numproj = p_numproj;
+
+    CASE QUARTER(v_deb)
+        WHEN 1 THEN SELECT 'Trimestre 1 (janv. - mars)' AS trimestre;
+        WHEN 2 THEN SELECT 'Trimestre 2 (avr. - juin)'  AS trimestre;
+        WHEN 3 THEN SELECT 'Trimestre 3 (juil. - sept.)' AS trimestre;
+        WHEN 4 THEN SELECT 'Trimestre 4 (oct. - déc.)'  AS trimestre;
+        ELSE SELECT 'Date de début inconnue' AS trimestre;
+    END CASE;
+END //
+DELIMITER ;</code></pre>
+<div class="note">Ici <code>QUARTER(v_deb)</code> est évalué <strong>une seule fois</strong>, puis comparé à 1, 2, 3, 4.</div>
+
+<p><strong>Forme 2 : CASE sans paramètre</strong> (chaque <code>WHEN</code> contient sa propre condition : <code>&lt;</code>, <code>&gt;=</code>, <code>IS NULL</code>, <code>AND</code>...)</p>
+<pre><code>CASE
+    WHEN condition1 THEN instructions;
+    WHEN condition2 THEN instructions;
+    ELSE instructions;
+END CASE;</code></pre>
+<p><strong>Exemple :</strong> donner l'état d'un projet selon sa date de fin.</p>
+<pre><code>DELIMITER //
+CREATE PROCEDURE statut_projet(IN p_numproj INT)
+BEGIN
+    DECLARE v_fin DATE;
+
+    SELECT datefin INTO v_fin
+    FROM projet
+    WHERE numproj = p_numproj;
+
+    CASE
+        WHEN v_fin IS NULL THEN
+            SELECT 'Date de fin non définie' AS statut;
+        WHEN v_fin &lt; CURDATE() THEN
+            SELECT 'Terminé' AS statut;
+        ELSE
+            SELECT 'En cours' AS statut;
+    END CASE;
+END //
+DELIMITER ;
+
+CALL statut_projet(1);</code></pre>
+<div class="tw"><table>
+<tr><th></th><th>CASE avec paramètre</th><th>CASE sans paramètre</th></tr>
+<tr><td>Syntaxe</td><td><code>CASE expr WHEN valeur</code></td><td><code>CASE WHEN condition</code></td></tr>
+<tr><td>Comparaison</td><td>égalité seulement (<code>=</code>)</td><td>toute condition (<code>&lt;</code>, <code>&gt;=</code>, <code>AND</code>, <code>IS NULL</code>...)</td></tr>
+<tr><td>Quand l'utiliser</td><td>valeurs précises (1, 2, 3 ou 'A', 'B')</td><td>intervalles et conditions variées</td></tr>
+</table></div>
+<div class="warn"><strong>Piège avec NULL :</strong> dans la forme avec paramètre, <code>WHEN NULL</code> ne correspond jamais (car <code>NULL = NULL</code> n'est pas vrai). Pour tester <code>NULL</code>, utilisez la forme sans paramètre avec <code>IS NULL</code>.</div>
+<div class="warn">Dans une procédure, si aucune branche <code>WHEN</code> ne correspond et qu'il n'y a pas de <code>ELSE</code>, MySQL génère une <strong>erreur</strong>. Prévoyez toujours un <code>ELSE</code>.</div>
+
+<h3>4.3 WHILE (tester d'abord)</h3>
+<pre><code>WHILE condition DO
+    instructions;
+END WHILE;</code></pre>
+<p><strong>Exemple :</strong> augmenter le prix de 10 % tant qu'il est inférieur à 500.</p>
+<pre><code>DELIMITER //
+CREATE PROCEDURE augmenter_prix(IN p_codlog INT)
+BEGIN
+    DECLARE v_prix DECIMAL(10,2);
+
+    SELECT prixlog INTO v_prix
+    FROM logiciel
+    WHERE codlog = p_codlog;
+
+    WHILE v_prix &gt; 0 AND v_prix &lt; 500 DO
+        SET v_prix = v_prix * 1.10;
+    END WHILE;
+
+    UPDATE logiciel SET prixlog = v_prix WHERE codlog = p_codlog;
+    SELECT v_prix AS nouveau_prix;
+END //
+DELIMITER ;</code></pre>
+<div class="warn"><strong>Boucle infinie :</strong> la condition doit pouvoir devenir fausse. Ici, si le prix valait 0, <code>0 * 1.10</code> resterait 0 pour toujours : d'où le test <code>v_prix &gt; 0</code>.</div>
+
+<h3>4.4 REPEAT (exécuter d'abord, tester ensuite)</h3>
+<pre><code>REPEAT
+    instructions;
+UNTIL condition
+END REPEAT;</code></pre>
+<p>La boucle s'arrête quand la condition devient <strong>vraie</strong> (le contraire de <code>WHILE</code>). Elle s'exécute <strong>au moins une fois</strong>.</p>
+<p><strong>Exemple :</strong> prix d'un logiciel après 3 années d'augmentation de 5 %.</p>
+<pre><code>DELIMITER //
+CREATE PROCEDURE prix_dans_3_ans(IN p_codlog INT)
+BEGIN
+    DECLARE v_prix DECIMAL(10,2);
+    DECLARE v_annee INT DEFAULT 0;
+
+    SELECT prixlog INTO v_prix
+    FROM logiciel
+    WHERE codlog = p_codlog;
+
+    REPEAT
+        SET v_prix  = v_prix * 1.05;
+        SET v_annee = v_annee + 1;
+    UNTIL v_annee &gt;= 3
+    END REPEAT;
+
+    SELECT v_prix AS prix_apres_3_ans;
+END //
+DELIMITER ;</code></pre>
+
+<h3>4.5 LOOP, LEAVE et ITERATE</h3>
+<pre><code>etiquette: LOOP
+    instructions;
+    IF condition_arret THEN
+        LEAVE etiquette;     -- sortir de la boucle
+    END IF;
+END LOOP etiquette;</code></pre>
+<ul>
+<li><code>LOOP</code> ne s'arrête jamais toute seule : il faut obligatoirement un <code>LEAVE</code>.</li>
+<li><code>LEAVE etiquette</code> : sort de la boucle.</li>
+<li><code>ITERATE etiquette</code> : passe directement à l'itération suivante (comme <code>continue</code>).</li>
+</ul>
+<p><strong>Exemple :</strong> nombre d'années nécessaires pour qu'un logiciel dépasse 1000.</p>
+<pre><code>DELIMITER //
+CREATE PROCEDURE annees_pour_1000(IN p_codlog INT)
+BEGIN
+    DECLARE v_prix DECIMAL(10,2);
+    DECLARE v_annees INT DEFAULT 0;
+
+    SELECT prixlog INTO v_prix
+    FROM logiciel
+    WHERE codlog = p_codlog;
+
+    IF v_prix &lt;= 0 THEN
+        SELECT 'Prix invalide' AS message;
+    ELSE
+        boucle: LOOP
+            IF v_prix &gt;= 1000 THEN
+                LEAVE boucle;
+            END IF;
+            SET v_prix   = v_prix * 1.10;
+            SET v_annees = v_annees + 1;
+        END LOOP boucle;
+
+        SELECT v_annees AS nombre_annees;
+    END IF;
+END //
+DELIMITER ;</code></pre>
+
+<h3>4.6 Bonus : IF() et CASE dans une requête SELECT</h3>
+<p>Dans un <code>SELECT</code> (hors programme stocké), on utilise la <strong>fonction</strong> <code>IF()</code> et l'<strong>expression</strong> <code>CASE ... END</code> :</p>
+<pre><code>SELECT nomlog, prixlog,
+       IF(prixlog &gt;= 1000, 'Cher', 'Abordable') AS niveau,
+       CASE
+           WHEN prixlog &gt;= 1000 THEN 'Cher'
+           WHEN prixlog &gt;= 300  THEN 'Moyen'
+           ELSE 'Économique'
+       END AS categorie
+FROM logiciel;
+
+-- CASE avec paramètre dans un SELECT
+SELECT titreproj,
+       CASE QUARTER(datedeb)
+           WHEN 1 THEN 'T1'
+           WHEN 2 THEN 'T2'
+           WHEN 3 THEN 'T3'
+           ELSE 'T4'
+       END AS trimestre
+FROM projet;</code></pre>
+<div class="note">Différence : dans une requête, <code>CASE ... END</code> (sans <code>CASE</code> final) ; dans une procédure, <code>CASE ... END CASE;</code>.</div>
+</section>
+
+<section>
+<h2>5. Choisir la bonne structure</h2>
+<div class="tw"><table>
+<tr><th>Situation</th><th>Choix</th></tr>
+<tr><td>Une ou deux conditions simples</td><td><code>IF</code></td></tr>
+<tr><td>Plusieurs cas possibles, lisibilité</td><td><code>CASE</code></td></tr>
+<tr><td>Nombre de répétitions inconnu, tester avant</td><td><code>WHILE</code></td></tr>
+<tr><td>Il faut exécuter au moins une fois</td><td><code>REPEAT</code></td></tr>
+<tr><td>Sortie au milieu de la boucle</td><td><code>LOOP</code> + <code>LEAVE</code></td></tr>
+</table></div>
+</section>
+
+<section>
+<h2>6. Méthodologie simple</h2>
+<ol>
+<li><strong>Écrire le problème</strong> en français : « si..., alors... sinon... » ou « tant que... ».</li>
+<li><strong>Identifier</strong> les variables nécessaires et les déclarer avec <code>DECLARE</code> (au début du bloc).</li>
+<li><strong>Choisir</strong> la structure (tableau ci-dessus).</li>
+<li><strong>Écrire la condition</strong> avec les opérateurs : <code>=</code>, <code>&lt;&gt;</code>, <code>&lt;</code>, <code>&gt;=</code>, <code>AND</code>, <code>OR</code>, <code>IS NULL</code>.</li>
+<li>Pour une boucle : vérifier que la condition <strong>finit par devenir fausse</strong> (ou que <code>LEAVE</code> est atteint).</li>
+<li><strong>Tester</strong> avec <code>CALL</code> sur plusieurs cas, y compris les cas limites (valeur <code>NULL</code>, prix égal à 0).</li>
+</ol>
+<div class="note"><strong>À retenir :</strong> <code>IF ... END IF;</code> · <code>CASE ... END CASE;</code> · <code>WHILE ... DO ... END WHILE;</code> · <code>REPEAT ... UNTIL ... END REPEAT;</code> · <code>LOOP ... END LOOP;</code></div>
+</section>
+
+</main>
+<footer>M203 — Gestion de données · Structures de contrôle MySQL</footer>
+<style>.hk{color:#7dd3fc}.hc{color:#94a3b8;font-style:italic}.hs{color:#fca5a5}.hn{color:#fcd34d}.hf{color:#c4b5fd}</style>
+<script>
+(function(){
+var KW="CREATE|TEMPORARY|TABLE|TABLES|VIEW|REPLACE|OR|DROP|ALTER|INSERT|INTO|VALUES|UPDATE|DELETE|SELECT|DISTINCT|FROM|WHERE|AND|NOT|NULL|IS|AS|JOIN|INNER|LEFT|RIGHT|ON|GROUP|BY|ORDER|HAVING|LIMIT|SET|LOCK|UNLOCK|READ|WRITE|LOCAL|PRIMARY|KEY|FOREIGN|REFERENCES|DEFAULT|PROCEDURE|FUNCTION|RETURNS|RETURN|DETERMINISTIC|DELIMITER|BEGIN|END|DECLARE|IF|THEN|ELSEIF|ELSE|CASE|WHEN|WHILE|DO|REPEAT|UNTIL|LOOP|LEAVE|ITERATE|CALL|IN|OUT|INOUT|INT|DECIMAL|DATE|VARCHAR|DOUBLE|SHOW|USE|DATABASE|START|TRANSACTION|COMMIT|ROLLBACK|WITH|CHECK|OPTION|EXISTS";
+var re=new RegExp("(--[^\\n]*)|('(?:[^'\\\\]|\\\\.|'')*')|\\b(\\d+(?:\\.\\d+)?)\\b|\\b("+KW+")\\b|\\b([A-Za-z_]+)(?=\\()","g");
+document.querySelectorAll("pre > code").forEach(function(el){
+  if(el.querySelector("span"))return;
+  var t=el.textContent.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  el.innerHTML=t.replace(re,function(m,c,s,n,k,f){
+    var cl=c?"hc":s?"hs":n?"hn":k?"hk":"hf";
+    return '<span class="'+cl+'">'+m+'</span>';
+  });
+});
+})();
+</script>
+</body>
+</html>
