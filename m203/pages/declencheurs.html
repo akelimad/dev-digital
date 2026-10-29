@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Les déclencheurs (Triggers) – M203</title>
+<style>
+:root{--main:#1e3a8a;--accent:#2563eb;--soft:#eff6ff;--ok:#16a34a;--warn:#d97706;--bad:#dc2626;--txt:#1f2937;--bg:#f8fafc}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",Tahoma,sans-serif;background:var(--bg);color:var(--txt);line-height:1.7}
+header{background:linear-gradient(135deg,#1e3a8a,#2563eb 60%,#06b6d4);color:#fff;text-align:center;padding:56px 20px}
+header h1{margin:0 0 8px;font-size:2.2rem}
+header p{margin:0;opacity:.9}
+header .tag{display:inline-block;margin-top:14px;background:rgba(255,255,255,.18);padding:4px 16px;border-radius:20px;font-size:.9rem}
+main{max-width:920px;margin:0 auto;padding:28px 18px 60px}
+section{background:#fff;border-radius:12px;padding:22px 26px;margin-bottom:22px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+h2{margin:0 0 12px;color:var(--main);font-size:1.4rem}
+h3{color:var(--accent);margin:18px 0 6px}
+pre{background:#0f172a;color:#e2e8f0;padding:14px 16px;border-radius:8px;overflow-x:auto;font-size:.88rem;line-height:1.5;direction:ltr;text-align:left}
+code{font-family:Consolas,monospace}
+p code,li code,td code{background:var(--soft);color:var(--main);padding:1px 6px;border-radius:4px}
+.k{color:#7dd3fc}.c{color:#94a3b8}.s{color:#fbbf24}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.95rem}
+th{background:var(--main);color:#fff;padding:9px;text-align:center}
+td{border:1px solid #e2e8f0;padding:8px 10px;text-align:center}
+td:first-child{text-align:left}
+.box{padding:12px 16px;border-radius:8px;margin:12px 0;border:1px solid}
+.info{background:var(--soft);border-color:var(--accent)}
+.warn{background:#fffbeb;border-color:var(--warn)}
+.tip{background:#f0fdf4;border-color:var(--ok)}
+.yes{color:var(--ok);font-weight:700}.no{color:var(--bad);font-weight:700}
+footer{text-align:center;color:#64748b;font-size:.85rem;padding:20px}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚡ Les déclencheurs (Triggers)</h1>
+  <p>Faire exécuter du code automatiquement par MySQL</p>
+  <span class="tag">Module M203 – Gestion de données</span>
+</header>
+<main>
+
+<section>
+<h2>1. Définition</h2>
+<p>Un <b>déclencheur</b> est une procédure stockée <b>attachée à une table</b>. Elle s'exécute <b>automatiquement</b> quand un événement précis (<code>INSERT</code>, <code>UPDATE</code> ou <code>DELETE</code>) se produit sur cette table. On ne l'appelle jamais soi-même.</p>
+<p>Utilisations : valider des données, garder une trace des anciennes/nouvelles valeurs (table d'audit), appliquer des règles métier.</p>
+<div class="box info">💡 <b>Exemple dans Glogiciels :</b> interdire un salaire négatif pour un développeur, ou archiver une réalisation avant sa suppression.</div>
+</section>
+
+<section>
+<h2>2. Syntaxe</h2>
+<pre><span class="k">DELIMITER</span> //
+<span class="k">CREATE TRIGGER</span> nom_declencheur
+  <span class="k">{BEFORE | AFTER}</span> <span class="k">{INSERT | UPDATE | DELETE}</span>
+  <span class="k">ON</span> nom_table
+  <span class="k">FOR EACH ROW</span>
+<span class="k">BEGIN</span>
+  <span class="c">-- corps : instructions à exécuter</span>
+<span class="k">END</span> //
+<span class="k">DELIMITER</span> ;</pre>
+<table>
+<tr><th>Élément</th><th>Rôle</th></tr>
+<tr><td><code>BEFORE | AFTER</code></td><td>Exécution avant ou après l'opération</td></tr>
+<tr><td><code>INSERT | UPDATE | DELETE</code></td><td>L'opération DML qui déclenche</td></tr>
+<tr><td><code>ON nom_table</code></td><td>La table surveillée</td></tr>
+<tr><td><code>FOR EACH ROW</code></td><td>Exécuté pour <b>chaque ligne</b> touchée</td></tr>
+<tr><td>Corps</td><td>Les instructions à exécuter</td></tr>
+</table>
+<div class="box warn">⚠️ Si le corps contient plusieurs instructions (<code>BEGIN ... END</code>), il faut changer le délimiteur avec <code>DELIMITER</code>. Une seule instruction : <code>BEGIN/END</code> est facultatif.</div>
+</section>
+
+<section>
+<h2>3. BEFORE ou AFTER ?</h2>
+<table>
+<tr><th></th><th>BEFORE</th><th>AFTER</th></tr>
+<tr><td>Moment</td><td>Avant l'opération</td><td>Après l'opération</td></tr>
+<tr><td>Usage typique</td><td>Contrôler / corriger / refuser</td><td>Journaliser, mettre à jour une autre table</td></tr>
+<tr><td>Peut modifier <code>NEW</code></td><td class="yes">Oui</td><td class="no">Non</td></tr>
+</table>
+<p>Cela donne <b>6 combinaisons</b> possibles : BEFORE/AFTER × INSERT/UPDATE/DELETE.</p>
+</section>
+
+<section>
+<h2>4. Les pseudo-lignes OLD et NEW</h2>
+<ul>
+<li><code>OLD</code> : la ligne <b>avant</b> modification (ancienne valeur).</li>
+<li><code>NEW</code> : la ligne <b>après</b> modification (nouvelle valeur).</li>
+</ul>
+<table>
+<tr><th>Trigger</th><th>OLD</th><th>NEW</th></tr>
+<tr><td>INSERT</td><td class="no">❌</td><td class="yes">✔</td></tr>
+<tr><td>UPDATE</td><td class="yes">✔</td><td class="yes">✔</td></tr>
+<tr><td>DELETE</td><td class="yes">✔</td><td class="no">❌</td></tr>
+</table>
+<div class="box tip">✅ Logique : à l'insertion il n'y a pas d'ancienne ligne ; à la suppression il n'y a pas de nouvelle ligne.</div>
+</section>
+
+<section>
+<h2>5. Exemples sur la base Glogiciels</h2>
+<div class="box info">ℹ️ Les noms de colonnes sont à adapter à votre schéma : ici <code>Developpeur(id_dev, nom, prenom, salaire)</code> et <code>Realisation(id_dev, id_projet, ...)</code>.</div>
+
+<h3>BEFORE INSERT : refuser un salaire invalide</h3>
+<pre><span class="k">DELIMITER</span> //
+<span class="k">CREATE TRIGGER</span> tr_dev_salaire_insert
+<span class="k">BEFORE INSERT ON</span> Developpeur
+<span class="k">FOR EACH ROW</span>
+<span class="k">BEGIN</span>
+  <span class="k">IF</span> NEW.salaire &lt; 0 <span class="k">THEN</span>
+    <span class="k">SIGNAL SQLSTATE</span> <span class="s">'45000'</span>
+    <span class="k">SET MESSAGE_TEXT</span> = <span class="s">'Le salaire ne peut pas être négatif.'</span>;
+  <span class="k">END IF</span>;
+<span class="k">END</span> //
+<span class="k">DELIMITER</span> ;
+
+<span class="c">-- Test : provoque l'erreur</span>
+<span class="k">INSERT INTO</span> Developpeur (nom, prenom, salaire) <span class="k">VALUES</span> (<span class="s">'Slami'</span>, <span class="s">'Saida'</span>, -500);</pre>
+<p><code>SIGNAL</code> déclenche une erreur : l'insertion est <b>annulée</b>.</p>
+
+<h3>BEFORE UPDATE : même contrôle à la modification</h3>
+<pre><span class="k">DELIMITER</span> //
+<span class="k">CREATE TRIGGER</span> tr_dev_salaire_update
+<span class="k">BEFORE UPDATE ON</span> Developpeur
+<span class="k">FOR EACH ROW</span>
+<span class="k">BEGIN</span>
+  <span class="k">IF</span> NEW.salaire &lt; 0 <span class="k">THEN</span>
+    <span class="k">SIGNAL SQLSTATE</span> <span class="s">'45000'</span>
+    <span class="k">SET MESSAGE_TEXT</span> = <span class="s">'Le salaire ne peut pas être négatif.'</span>;
+  <span class="k">END IF</span>;
+<span class="k">END</span> //
+<span class="k">DELIMITER</span> ;</pre>
+
+<h3>AFTER UPDATE : journaliser les changements de salaire</h3>
+<pre><span class="k">CREATE TABLE</span> Audit_Salaire (
+  id <span class="k">INT AUTO_INCREMENT PRIMARY KEY</span>,
+  id_dev <span class="k">INT</span>,
+  ancien_salaire <span class="k">DECIMAL</span>(10,2),
+  nouveau_salaire <span class="k">DECIMAL</span>(10,2),
+  date_modif <span class="k">DATETIME DEFAULT</span> <span class="k">CURRENT_TIMESTAMP</span>
+);
+
+<span class="k">DELIMITER</span> //
+<span class="k">CREATE TRIGGER</span> tr_audit_salaire
+<span class="k">AFTER UPDATE ON</span> Developpeur
+<span class="k">FOR EACH ROW</span>
+<span class="k">BEGIN</span>
+  <span class="k">IF</span> OLD.salaire &lt;&gt; NEW.salaire <span class="k">THEN</span>
+    <span class="k">INSERT INTO</span> Audit_Salaire (id_dev, ancien_salaire, nouveau_salaire)
+    <span class="k">VALUES</span> (OLD.id_dev, OLD.salaire, NEW.salaire);
+  <span class="k">END IF</span>;
+<span class="k">END</span> //
+<span class="k">DELIMITER</span> ;
+
+<span class="c">-- Test</span>
+<span class="k">UPDATE</span> Developpeur <span class="k">SET</span> salaire = 9000 <span class="k">WHERE</span> id_dev = 1;
+<span class="k">SELECT</span> * <span class="k">FROM</span> Audit_Salaire;</pre>
+
+<h3>BEFORE DELETE : archiver avant de supprimer</h3>
+<pre><span class="k">CREATE TABLE</span> Archive_Developpeur <span class="k">LIKE</span> Developpeur;
+
+<span class="k">DELIMITER</span> //
+<span class="k">CREATE TRIGGER</span> tr_archive_dev
+<span class="k">BEFORE DELETE ON</span> Developpeur
+<span class="k">FOR EACH ROW</span>
+<span class="k">BEGIN</span>
+  <span class="k">INSERT INTO</span> Archive_Developpeur
+  <span class="k">VALUES</span> (OLD.id_dev, OLD.nom, OLD.prenom, OLD.salaire);
+<span class="k">END</span> //
+<span class="k">DELIMITER</span> ;</pre>
+
+<h3>AFTER INSERT : mettre à jour une valeur calculée</h3>
+<pre><span class="k">CREATE TABLE</span> Stat_Projet (id_projet <span class="k">INT PRIMARY KEY</span>, nb_dev <span class="k">INT DEFAULT</span> 0);
+
+<span class="k">CREATE TRIGGER</span> tr_nb_dev_ajout
+<span class="k">AFTER INSERT ON</span> Realisation
+<span class="k">FOR EACH ROW</span>
+  <span class="k">UPDATE</span> Stat_Projet <span class="k">SET</span> nb_dev = nb_dev + 1
+  <span class="k">WHERE</span> id_projet = NEW.id_projet;</pre>
+
+<h3>AFTER DELETE : l'inverse</h3>
+<pre><span class="k">CREATE TRIGGER</span> tr_nb_dev_retrait
+<span class="k">AFTER DELETE ON</span> Realisation
+<span class="k">FOR EACH ROW</span>
+  <span class="k">UPDATE</span> Stat_Projet <span class="k">SET</span> nb_dev = nb_dev - 1
+  <span class="k">WHERE</span> id_projet = OLD.id_projet;</pre>
+<div class="box tip">✅ Une seule instruction dans le corps : pas besoin de <code>BEGIN ... END</code> ni de <code>DELIMITER</code>.</div>
+</section>
+
+<section>
+<h2>6. Avantages</h2>
+<ul>
+<li>Renforcent l'<b>intégrité</b> des données.</li>
+<li>Détectent les erreurs au plus tôt.</li>
+<li>Automatisent des tâches (plus besoin de les planifier).</li>
+<li>Permettent l'<b>audit</b> : historique des changements, prévention des opérations invalides.</li>
+</ul>
+</section>
+
+<section>
+<h2>7. Restrictions</h2>
+<ul>
+<li>Un trigger <b>ne retourne aucune valeur</b>.</li>
+<li>Pas de <code>COMMIT</code> / <code>ROLLBACK</code> / <code>START TRANSACTION</code> dans le corps.</li>
+<li>Impossible de modifier, dans le trigger, la table qui l'a déclenché (erreur 1442).</li>
+<li>Pas de trigger sur une table temporaire ni sur une vue.</li>
+<li>Selon le moteur (InnoDB, MyISAM…), les résultats peuvent varier : InnoDB annule aussi les effets du trigger si l'opération échoue.</li>
+<li>Selon le support de cours : un seul trigger par événement et par moment (ex. un seul <code>BEFORE UPDATE</code> par table), mais il peut contenir plusieurs instructions.</li>
+</ul>
+</section>
+
+<section>
+<h2>8. Gérer les déclencheurs</h2>
+<pre><span class="c">-- Lister les triggers de la base</span>
+<span class="k">SHOW TRIGGERS</span>;
+
+<span class="c">-- Supprimer un trigger</span>
+<span class="k">DROP TRIGGER IF EXISTS</span> Glogiciels.tr_audit_salaire;
+
+<span class="c">-- Modifier un trigger : pas de ALTER, on supprime puis on recrée</span>
+<span class="k">DROP TRIGGER IF EXISTS</span> tr_audit_salaire;
+<span class="c">-- puis CREATE TRIGGER ... à nouveau</span></pre>
+<div class="box warn">⚠️ Si on supprime une table, MySQL supprime automatiquement tous ses triggers.</div>
+</section>
+
+<section>
+<h2>9. À retenir</h2>
+<ul>
+<li>Trigger = code <b>automatique</b> lié à une table et à un événement.</li>
+<li><b>BEFORE</b> pour contrôler, <b>AFTER</b> pour journaliser / répercuter.</li>
+<li><code>NEW</code> = nouvelle ligne, <code>OLD</code> = ancienne ligne.</li>
+<li><code>SIGNAL</code> pour refuser une opération.</li>
+<li><code>SHOW TRIGGERS</code> pour lister, <code>DROP TRIGGER</code> pour supprimer.</li>
+</ul>
+</section>
+
+</main>
+<footer>M203 – Gestion de données · Les déclencheurs</footer>
+</body>
+</html>

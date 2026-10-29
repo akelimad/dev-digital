@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La gestion des exceptions en MySQL</title>
+<style>
+:root{--bg:#f7f8fa;--card:#fff;--ink:#1d2433;--mut:#5b6578;--line:#dfe3ea;--acc:#1f5fbf;--accbg:#e8f0fc;--ok:#1b7f4b;--okbg:#e6f5ec;--warn:#a85d00;--warnbg:#fff3e0;--code:#14192a;--k:#7ab7ff;--s:#9ee493;--c:#7f8aa3;--n:#ffb86b;--f:#e5a6ff}
+@media(prefers-color-scheme:dark){:root{--bg:#10141d;--card:#181d29;--ink:#e8ecf4;--mut:#9aa5ba;--line:#2a3142;--acc:#7ab7ff;--accbg:#1a2740;--ok:#6fd49b;--okbg:#14291e;--warn:#ffb86b;--warnbg:#2c2112;--code:#0b0e16}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header.hero{background:linear-gradient(135deg,#1f5fbf 0%,#3b82d6 55%,#5aa0e8 100%);color:#fff;padding:44px 20px 38px}
+header.hero .in{max-width:860px;margin:0 auto;text-align:center}
+header.hero p{margin-left:auto;margin-right:auto}
+header.hero h1{margin:0 0 8px;font-size:2rem;color:#fff;text-align:center}
+header.hero p{margin:0 auto;max-width:none;text-align:center;color:#e3eefc;font-size:1.05rem}
+main{max-width:860px;margin:0 auto;padding:32px 20px 80px}
+h1{font-size:2rem;margin:0 0 6px}
+h2{font-size:1.35rem;margin:42px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+h3{font-size:1.05rem;margin:22px 0 6px}
+p,li{max-width:70ch}
+.lead{color:var(--mut);font-size:1.05rem}
+.box{border-left:4px solid var(--acc);background:var(--accbg);padding:12px 16px;border-radius:6px;margin:14px 0}
+.box.warn{border-color:var(--warn);background:var(--warnbg)}
+.box.ok{border-color:var(--ok);background:var(--okbg)}
+.box p{margin:4px 0}
+a{color:var(--acc);font-weight:600}
+pre{background:var(--code);color:#e6ebf5;padding:14px 16px;border-radius:8px;overflow-x:auto;font:14px/1.55 ui-monospace,Consolas,monospace;margin:10px 0}
+code{font-family:ui-monospace,Consolas,monospace;background:var(--accbg);padding:1px 5px;border-radius:4px;font-size:.92em}
+pre code{background:none;padding:0;font-size:inherit}
+.k{color:var(--k);font-weight:600}.s{color:var(--s)}.c{color:var(--c);font-style:italic}.n{color:var(--n)}.f{color:var(--f)}
+table{border-collapse:collapse;width:100%;margin:10px 0;background:var(--card)}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--accbg)}
+.wrap{overflow-x:auto}
+.tp li{margin:8px 0}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+</style>
+</head>
+<body>
+<header class="hero"><div class="in">
+<h1>La gestion des exceptions en MySQL</h1>
+<p>Comment éviter qu'une procédure s'arrête brutalement à la première erreur.</p>
+</div></header>
+<main>
+
+<h2>1. Définition et rôle</h2>
+<p>Une <b>exception</b> est une erreur qui survient pendant l'exécution d'une instruction SQL (doublon de clé, valeur NULL interdite, table inexistante, aucune ligne trouvée...).</p>
+<p>Sans gestion, MySQL <b>arrête</b> la procédure et affiche un message d'erreur technique. Avec un <b>handler</b> (gestionnaire d'erreur), on décide nous-mêmes quoi faire :</p>
+<ul>
+<li>afficher un message clair à l'utilisateur ;</li>
+<li>continuer ou arrêter proprement la procédure ;</li>
+<li>annuler une transaction en cours (<code>ROLLBACK</code>).</li>
+</ul>
+<div class="box"><p>Les handlers s'utilisent dans les <b>procédures</b>, les <b>fonctions</b> et les <b>déclencheurs</b>, à l'intérieur d'un bloc <code>BEGIN ... END</code>.</p></div>
+
+<h2>2. Syntaxe du handler</h2>
+<pre><code>DECLARE type_handler HANDLER FOR condition [, condition ...]
+    instruction;</code></pre>
+<p>Le <code>DECLARE ... HANDLER</code> se place au <b>début du bloc</b>, après les variables.</p>
+
+<h3>Les deux types de handler</h3>
+<div class="wrap"><table>
+<tr><th>Type</th><th>Comportement</th></tr>
+<tr><td><code>CONTINUE</code></td><td>Exécute l'instruction du handler, puis <b>poursuit</b> la procédure à l'instruction suivante.</td></tr>
+<tr><td><code>EXIT</code></td><td>Exécute l'instruction du handler, puis <b>quitte</b> le bloc <code>BEGIN ... END</code> courant.</td></tr>
+</table></div>
+
+<h3>Les conditions les plus utilisées</h3>
+<div class="wrap"><table>
+<tr><th>Condition</th><th>Signification</th></tr>
+<tr><td>un code MySQL (ex. <code>1062</code>)</td><td>Une erreur précise : 1062 = doublon de clé, 1048 = valeur NULL interdite, 1146 = table inexistante.</td></tr>
+<tr><td><code>SQLSTATE 'xxxxx'</code></td><td>Un groupe d'erreurs. Ex. <code>'23000'</code> = violation de contrainte (doublon, NULL, clé étrangère).</td></tr>
+<tr><td><code>SQLWARNING</code></td><td>Tous les avertissements (SQLSTATE commençant par 01).</td></tr>
+<tr><td><code>NOT FOUND</code></td><td>Aucune ligne trouvée (SQLSTATE commençant par 02) : <code>SELECT ... INTO</code> sans résultat, fin d'un curseur.</td></tr>
+<tr><td><code>SQLEXCEPTION</code></td><td>Toutes les autres erreurs (ni warning, ni not found).</td></tr>
+<tr><td>un nom de condition</td><td>Une erreur à laquelle on a donné un nom (voir section 6).</td></tr>
+</table></div>
+<div class="box warn"><p><b>Attention :</b> dans certains supports, le code <code>1040</code> est cité pour « NULL interdit ». Le bon code est <code>1048</code> (le 1040 correspond à « trop de connexions »).</p></div>
+
+<h3>Codes d'erreur fréquents et leur SQLSTATE</h3>
+<div class="wrap"><table>
+<tr><th>Code MySQL</th><th>Nom</th><th>SQLSTATE</th><th>Situation</th></tr>
+<tr><td><code>1048</code></td><td>ER_BAD_NULL_ERROR</td><td><code>23000</code></td><td>NULL dans une colonne NOT NULL</td></tr>
+<tr><td><code>1062</code></td><td>ER_DUP_ENTRY</td><td><code>23000</code></td><td>Doublon de clé primaire ou unique</td></tr>
+<tr><td><code>1452</code></td><td>ER_NO_REFERENCED_ROW_2</td><td><code>23000</code></td><td>Clé étrangère : ligne parente inexistante</td></tr>
+<tr><td><code>1451</code></td><td>ER_ROW_IS_REFERENCED_2</td><td><code>23000</code></td><td>Clé étrangère : suppression d'une ligne encore référencée</td></tr>
+<tr><td><code>1146</code></td><td>ER_NO_SUCH_TABLE</td><td><code>42S02</code></td><td>Table inexistante</td></tr>
+<tr><td><code>1172</code></td><td>ER_TOO_MANY_ROWS</td><td><code>42000</code></td><td><code>SELECT INTO</code> qui retourne plusieurs lignes</td></tr>
+<tr><td><code>1365</code></td><td>ER_DIVISION_BY_ZERO</td><td><code>22012</code></td><td>Division par zéro</td></tr>
+<tr><td><code>1644</code></td><td>ER_SIGNAL_EXCEPTION</td><td><code>HY000</code></td><td>Erreur levée par <code>SIGNAL</code> sans SQLSTATE précis</td></tr>
+</table></div>
+<div class="box ok"><p><b>Pour consulter la liste complète :</b> la documentation MySQL Connector/J fournit la correspondance entre tous les numéros d'erreur MySQL et leur code SQLSTATE.</p>
+<p><a href="https://dev.mysql.com/doc/connector-j/en/connector-j-reference-error-sqlstates.html" target="_blank" rel="noopener noreferrer">Mapping MySQL Error Numbers to JDBC SQLState Codes (dev.mysql.com)</a></p></div>
+
+<h2>3. Handler EXIT</h2>
+<h3>Exemple 1 : valeur NULL interdite (code 1048)</h3>
+<p>On ajoute un développeur sans nom alors que <code>nomdev</code> est <code>NOT NULL</code>.</p>
+<pre><code>DELIMITER //
+CREATE PROCEDURE ps_ajouter_developpeur(
+    IN p_num INT, IN p_nom VARCHAR(50), IN p_adr VARCHAR(100))
+BEGIN
+    DECLARE EXIT HANDLER FOR 1048
+    BEGIN
+        SELECT 'Erreur : le nom du développeur est obligatoire' AS message;
+    END;
+
+    INSERT INTO developpeur (numdev, nomdev, adrdev)
+    VALUES (p_num, p_nom, p_adr);
+
+    SELECT 'Développeur ajouté avec succès' AS message;
+END //
+DELIMITER ;
+
+CALL ps_ajouter_developpeur(50, NULL, 'Rabat');</code></pre>
+<p>Résultat : le message d'erreur est affiché et la procédure s'arrête (le message « ajouté avec succès » n'apparaît pas).</p>
+
+<h3>Exemple 2 : aucune ligne trouvée (NOT FOUND)</h3>
+<pre><code>DELIMITER //
+CREATE PROCEDURE ps_chercher_developpeur(IN p_num INT)
+BEGIN
+    DECLARE v_nom VARCHAR(50);
+    DECLARE EXIT HANDLER FOR NOT FOUND
+        SELECT CONCAT('Aucun développeur avec le numéro ', p_num) AS message;
+
+    SELECT nomdev INTO v_nom FROM developpeur WHERE numdev = p_num;
+
+    SELECT CONCAT('Développeur trouvé : ', v_nom) AS message;
+END //
+DELIMITER ;
+
+CALL ps_chercher_developpeur(999);</code></pre>
+<div class="box warn"><p><b>Attention :</b> si le <code>SELECT ... INTO</code> retourne <b>plusieurs lignes</b>, ce n'est pas un <code>NOT FOUND</code> : MySQL déclenche l'erreur 1172 (<i>Result consisted of more than one row</i>), à gérer avec <code>SQLEXCEPTION</code> ou <code>1172</code>.</p></div>
+
+<h3>Exemple 3 : une erreur quelconque (SQLEXCEPTION)</h3>
+<pre><code>DELIMITER //
+CREATE PROCEDURE ps_test_erreur()
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+        SELECT 'Une erreur est survenue' AS message;
+
+    INSERT INTO table_inexistante VALUES (1);
+    SET @x = 99;
+END //
+DELIMITER ;
+
+CALL ps_test_erreur();
+SELECT @x;</code></pre>
+<p>Le handler s'est déclenché et la procédure s'est arrêtée : <code>@x</code> n'a pas été modifiée (<code>NULL</code>).</p>
+<div class="box"><p>MySQL ne permet pas toujours de récupérer le code et le message exacts de l'erreur dans un handler <code>SQLEXCEPTION</code>. Si on en a besoin, on utilise <code>GET DIAGNOSTICS</code>, ou on prévoit un handler par erreur connue.</p></div>
+
+<h2>4. Handler CONTINUE</h2>
+<p>Avec <code>CONTINUE</code>, la procédure <b>ne s'arrête pas</b> : après le handler, elle reprend à l'instruction suivante.</p>
+<pre><code>DELIMITER //
+CREATE PROCEDURE ps_doublon_continue()
+BEGIN
+    DECLARE CONTINUE HANDLER FOR SQLSTATE '23000'
+        SET @erreur = 1;
+
+    SET @erreur = 0;
+    SET @etape = 1;
+    INSERT INTO developpeur (numdev, nomdev) VALUES (1, 'Test');
+    SET @etape = 2;
+    INSERT INTO developpeur (numdev, nomdev) VALUES (1, 'Test');
+    SET @etape = 3;
+END //
+DELIMITER ;
+
+CALL ps_doublon_continue();
+SELECT @etape, @erreur;</code></pre>
+<p>Résultat : <code>@etape = 3</code> et <code>@erreur = 1</code>. Le 2e <code>INSERT</code> a provoqué un doublon de clé, le handler a noté l'erreur, et la procédure est allée jusqu'au bout.</p>
+<div class="box ok"><p><b>Comment choisir ?</b> <code>EXIT</code> quand la suite n'a plus de sens après l'erreur (on arrête). <code>CONTINUE</code> quand l'erreur est tolérable et que le reste du travail doit s'exécuter.</p></div>
+
+<h2>5. Utiliser un drapeau (variable indicatrice)</h2>
+<p>Technique très courante avec <code>CONTINUE</code> : le handler lève un drapeau, et on teste ce drapeau après l'instruction à risque.</p>
+<pre><code>DELIMITER //
+CREATE PROCEDURE ps_ajouter_dev_flag(IN p_num INT, IN p_nom VARCHAR(50))
+BEGIN
+    DECLARE doublon BOOLEAN DEFAULT FALSE;
+    DECLARE CONTINUE HANDLER FOR 1062 SET doublon = TRUE;
+
+    INSERT INTO developpeur (numdev, nomdev) VALUES (p_num, p_nom);
+
+    IF doublon THEN
+        SELECT CONCAT('Le numéro ', p_num, ' existe déjà') AS message;
+    ELSE
+        SELECT 'Développeur ajouté' AS message;
+    END IF;
+END //
+DELIMITER ;</code></pre>
+
+<h2>6. Donner un nom à une erreur (DECLARE CONDITION)</h2>
+<p>Pour rendre le code plus lisible, on peut nommer une erreur, puis utiliser ce nom dans le handler.</p>
+<pre><code>DECLARE nom_condition CONDITION FOR
+    { SQLSTATE 'valeur' | code_erreur_mysql };</code></pre>
+<pre><code>DELIMITER //
+CREATE PROCEDURE ps_ajouter_projet(IN p_num INT, IN p_titre VARCHAR(100))
+BEGIN
+    DECLARE projet_existe CONDITION FOR 1062;
+    DECLARE EXIT HANDLER FOR projet_existe
+        SELECT 'Ce numéro de projet existe déjà' AS message;
+
+    INSERT INTO projet (numproj, titreproj) VALUES (p_num, p_titre);
+    SELECT 'Projet ajouté' AS message;
+END //
+DELIMITER ;</code></pre>
+
+<h2>7. Déclencher sa propre erreur : SIGNAL</h2>
+<p>Parfois, ce n'est pas MySQL qui détecte l'erreur, mais <b>notre règle métier</b> (ex. un projet doit exister). Avec <code>SIGNAL</code>, on <b>lève</b> nous-mêmes une exception avec un message personnalisé.</p>
+<pre><code>SIGNAL SQLSTATE 'valeur'
+    SET MESSAGE_TEXT = 'votre message';</code></pre>
+<div class="box"><p>Pour les erreurs personnalisées, on utilise la valeur <code>'45000'</code> (« exception définie par l'utilisateur »).</p></div>
+<h3>Exemple : affecter un développeur à un projet</h3>
+<pre><code>DELIMITER //
+CREATE PROCEDURE ps_affecter_developpeur(IN p_numproj INT, IN p_numdev INT)
+BEGIN
+    DECLARE v_nb INT;
+
+    SELECT COUNT(*) INTO v_nb FROM projet WHERE numproj = p_numproj;
+    IF v_nb = 0 THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Projet introuvable';
+    END IF;
+
+    SELECT COUNT(*) INTO v_nb FROM developpeur WHERE numdev = p_numdev;
+    IF v_nb = 0 THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Développeur introuvable';
+    END IF;
+
+    INSERT INTO realisation (numproj, numdev) VALUES (p_numproj, p_numdev);
+END //
+DELIMITER ;
+
+CALL ps_affecter_developpeur(1, 9999);</code></pre>
+<p>Résultat : <code>ERROR 1644 (45000): Développeur introuvable</code>. La procédure s'arrête et l'appelant reçoit notre message.</p>
+
+<h2>8. Relancer une erreur : RESIGNAL</h2>
+<p><code>RESIGNAL</code> fonctionne comme <code>SIGNAL</code>, mais s'utilise <b>uniquement dans un handler</b> : on intercepte une erreur, puis on la <b>relance</b> (souvent avec un message plus clair).</p>
+<pre><code>DELIMITER //
+CREATE PROCEDURE ps_diviser(
+    IN p_a INT, IN p_b INT, OUT p_resultat DOUBLE)
+BEGIN
+    DECLARE division_par_zero CONDITION FOR SQLSTATE '22012';
+    DECLARE CONTINUE HANDLER FOR division_par_zero
+        RESIGNAL SET MESSAGE_TEXT = 'Division par zéro : le dénominateur doit être différent de 0';
+
+    IF p_b = 0 THEN
+        SIGNAL division_par_zero;
+    ELSE
+        SET p_resultat = p_a / p_b;
+    END IF;
+END //
+DELIMITER ;
+
+CALL ps_diviser(10, 0, @r);</code></pre>
+<div class="wrap"><table>
+<tr><th>Instruction</th><th>Où l'utiliser ?</th></tr>
+<tr><td><code>SIGNAL</code></td><td>Partout dans la procédure.</td></tr>
+<tr><td><code>RESIGNAL</code></td><td>Uniquement dans un handler (sinon erreur « RESIGNAL when handler not active »).</td></tr>
+</table></div>
+
+<h2>9. Méthodologie</h2>
+<ol>
+<li>Repérer l'instruction qui peut échouer (<code>INSERT</code>, <code>SELECT INTO</code>, appel d'une autre procédure...).</li>
+<li>Identifier l'erreur possible (code MySQL, <code>SQLSTATE</code>, <code>NOT FOUND</code>, <code>SQLEXCEPTION</code>).</li>
+<li>Choisir <code>EXIT</code> (on arrête) ou <code>CONTINUE</code> (on poursuit).</li>
+<li>Déclarer le handler <b>au début du bloc</b>, après les variables.</li>
+<li>Pour une règle métier non vérifiée par MySQL : tester avec <code>IF</code> puis <code>SIGNAL</code>.</li>
+</ol>
+
+<h2>10. TP sur la base Glogiciels</h2>
+<ol class="tp">
+<li>Écrire <code>ps_ajouter_logiciel(p_cod, p_nom, p_prix, p_numproj)</code> avec un handler <code>EXIT</code> sur le doublon de clé (1062) qui affiche « Ce logiciel existe déjà ».</li>
+<li>Dans la même procédure, ajouter un handler <code>EXIT</code> sur l'erreur de clé étrangère (1452) qui affiche « Projet inexistant ».</li>
+<li>Écrire <code>ps_afficher_projet(p_numproj)</code> qui affiche le titre du projet, ou « Projet introuvable » grâce à <code>NOT FOUND</code>.</li>
+<li>Écrire <code>ps_supprimer_developpeur(p_numdev)</code> qui lève un <code>SIGNAL</code> « Impossible : ce développeur a des réalisations » s'il apparaît dans la table <code>realisation</code>.</li>
+<li>Écrire <code>ps_ajouter_plusieurs()</code> qui insère 3 développeurs dont un doublon, avec un handler <code>CONTINUE</code>, puis affiche combien d'insertions ont échoué.</li>
+</ol>
+</main>
+
+<script>
+(function(){
+var KW=/^(DELIMITER|CREATE|PROCEDURE|BEGIN|END|DECLARE|HANDLER|FOR|EXIT|CONTINUE|CONDITION|SQLSTATE|SQLEXCEPTION|SQLWARNING|NOT|FOUND|NULL|DEFAULT|SET|IF|THEN|ELSE|SIGNAL|RESIGNAL|MESSAGE_TEXT|INSERT|INTO|VALUES|SELECT|FROM|WHERE|CALL|IN|OUT|AS|TRUE|FALSE|COUNT|CONCAT)$/;
+var TY=/^(INT|VARCHAR|BOOLEAN|DOUBLE)$/;
+var RE=/('[^']*')|(--[^\n]*)|([A-Za-z_][A-Za-z_0-9]*)|(\d+)|([\s\S])/g;
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+document.querySelectorAll('pre code').forEach(function(el){
+  var src=el.textContent,out='',m;
+  RE.lastIndex=0;
+  while((m=RE.exec(src))!==null){
+    if(m[1]) out+='<span class="s">'+esc(m[1])+'</span>';
+    else if(m[2]) out+='<span class="c">'+esc(m[2])+'</span>';
+    else if(m[3]){
+      var w=m[3],u=w.toUpperCase();
+      if(KW.test(u)) out+='<span class="k">'+w+'</span>';
+      else if(TY.test(u)) out+='<span class="f">'+w+'</span>';
+      else out+=w;
+    }
+    else if(m[4]) out+='<span class="n">'+m[4]+'</span>';
+    else out+=esc(m[5]);
+  }
+  el.innerHTML=out;
+});
+})();
+</script>
+</body>
+</html>

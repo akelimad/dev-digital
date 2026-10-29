@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Les curseurs – MySQL</title>
+<style>
+:root{
+  --bg:#f7f8fa; --card:#ffffff; --ink:#1d2433; --muted:#5b6579; --line:#dde1ea;
+  --accent:#1f5fbf; --accent-soft:#e6efff; --ok:#17794a; --ok-soft:#e5f5ec;
+  --warn:#9a5b00; --warn-soft:#fff3dc; --code-bg:#161b26; --code-ink:#e8ecf5;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#12161f; --card:#1a202c; --ink:#e8ecf5; --muted:#a2adc2; --line:#2b3345;
+    --accent:#7fb0ff; --accent-soft:#1b2a45; --ok:#5fd597; --ok-soft:#14301f;
+    --warn:#ffc266; --warn-soft:#3a2b10; --code-bg:#0c1018; --code-ink:#e8ecf5;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.65 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+header.hero{background:linear-gradient(135deg,#1f5fbf,#16406f);color:#fff;text-align:center;padding:48px 20px 44px}
+header.hero h1{color:#fff;margin:0 0 8px;font-size:2.4rem}
+header.hero p{margin:0;color:#dbe7fb;font-size:1.05rem}
+main{max-width:860px;margin:0 auto;padding:12px 20px 80px}
+h1{font-size:2.1rem;line-height:1.2;margin:0 0 6px}
+.sub{color:var(--muted);margin:0 0 28px}
+h2{font-size:1.4rem;margin:44px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+h3{font-size:1.1rem;margin:22px 0 8px}
+p{margin:10px 0}
+.box{border-left:5px solid var(--accent);background:var(--accent-soft);padding:14px 18px;border-radius:0 8px 8px 0;margin:16px 0}
+.box.ok{border-color:var(--ok);background:var(--ok-soft)}
+.box.warn{border-color:var(--warn);background:var(--warn-soft)}
+.box strong:first-child{display:block;margin-bottom:2px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:16px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card h3{margin:0 0 6px;font-size:1.02rem;color:var(--accent)}
+.card p{margin:0;font-size:.96rem}
+.steps{list-style:none;padding:0;margin:16px 0;counter-reset:s}
+.steps li{counter-increment:s;display:flex;gap:14px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin:10px 0}
+.steps li::before{content:counter(s);flex:none;width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center}
+.steps code{background:var(--accent-soft);color:var(--accent)}
+pre{background:var(--code-bg);color:var(--code-ink);padding:16px 18px;border-radius:10px;overflow-x:auto;font:14.5px/1.55 Consolas,"Courier New",monospace;margin:12px 0}
+code{font-family:Consolas,"Courier New",monospace;font-size:.92em}
+p code,li code,td code{background:var(--accent-soft);color:var(--accent);padding:1px 6px;border-radius:4px}
+pre code{background:none;color:inherit;padding:0}
+.k{color:#7fb0ff}.c{color:#8a96ad}.s{color:#9fe0b0}
+table{border-collapse:collapse;width:100%;margin:14px 0;background:var(--card);border-radius:8px;overflow:hidden}
+th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;font-size:.96rem}
+th{background:var(--accent-soft)}
+.scroll{overflow-x:auto}
+.result{font-size:.9rem;color:var(--muted);margin:-4px 0 12px}
+ul{padding-left:22px}
+li{margin:4px 0}
+</style>
+</head>
+<body>
+<header class="hero">
+  <h1>Les curseurs</h1>
+  <p>Module M203 – Traiter un résultat de SELECT ligne par ligne</p>
+</header>
+<main>
+
+<h2>1. Définition</h2>
+<p>Un <strong>curseur</strong> est une zone mémoire créée côté serveur qui garde le résultat d'un <code>SELECT</code> et permet de <strong>traiter les lignes une par une</strong>.</p>
+<p>Pendant qu'il est ouvert, le curseur « pointe » toujours sur une <strong>ligne courante</strong>. À chaque lecture, il avance à la ligne suivante.</p>
+<div class="box">
+  <strong>Image à retenir</strong>
+  Un SELECT renvoie un tableau entier. Le curseur, c'est un doigt qui descend le tableau ligne par ligne pour lire chaque ligne avant de passer à la suivante.
+</div>
+<p>Un même sous-programme (procédure, fonction) peut utiliser <strong>plusieurs curseurs</strong> en même temps.</p>
+
+<h2>2. Pourquoi utiliser un curseur ?</h2>
+<p>Une requête SQL travaille sur un <em>ensemble</em> de lignes. Mais parfois il faut appliquer une logique différente à <em>chaque</em> ligne (tests, calculs, insertions ailleurs). C'est là que le curseur sert.</p>
+<ul>
+  <li>Parcourir les lignes d'un SELECT et agir sur chacune</li>
+  <li>Construire un résultat à partir de plusieurs lignes (liste, total, rapport)</li>
+  <li>Copier ou transformer des lignes vers une autre table selon des conditions</li>
+</ul>
+<div class="box warn">
+  <strong>Quand utiliser un curseur ?</strong>
+  Si un simple <code>UPDATE</code>, <code>INSERT ... SELECT</code> ou <code>SUM()</code> suffit, utilisez-le : c'est plus simple et plus rapide. Le curseur est justifié dans deux cas :
+  <ul>
+    <li>le traitement d'une ligne dépend de ce qui s'est passé sur les lignes précédentes (total cumulé, budget restant, compteur d'état) ;</li>
+    <li>il faut exécuter une procédure ou une série d'instructions pour chaque ligne (un <code>CALL</code> ne peut pas être placé dans un SELECT).</li>
+  </ul>
+</div>
+
+<h2>3. Les 3 propriétés d'un curseur MySQL</h2>
+<div class="grid">
+  <div class="card"><h3>Read-only</h3><p>Lecture seule : on ne modifie pas la base à travers le curseur (sauf avec la clause <code>FOR UPDATE</code>).</p></div>
+  <div class="card"><h3>Non-scrollable</h3><p>Non navigable : on parcourt du début à la fin, sans jamais revenir à la ligne précédente.</p></div>
+  <div class="card"><h3>Asensitive</h3><p>Insensible : le curseur travaille sur une copie temporaire. Une mise à jour faite après l'ouverture n'y apparaît pas.</p></div>
+</div>
+
+<h2>4. Les étapes d'utilisation</h2>
+<ol class="steps">
+  <li><div><code>DECLARE</code> : on déclare le curseur avec son <code>SELECT</code>.</div></li>
+  <li><div><code>OPEN</code> : on ouvre le curseur, le SELECT s'exécute et le résultat est prêt.</div></li>
+  <li><div><code>FETCH</code> : on lit la ligne courante dans des variables, puis le curseur avance. On répète dans une boucle.</div></li>
+  <li><div><code>CLOSE</code> : on ferme le curseur pour libérer la mémoire.</div></li>
+</ol>
+
+<h2>5. Syntaxe</h2>
+<pre><code><span class="k">DECLARE</span> nom_curseur <span class="k">CURSOR FOR</span> instruction_SELECT;
+
+<span class="k">OPEN</span> nom_curseur;
+
+<span class="k">FETCH</span> nom_curseur <span class="k">INTO</span> variable1, variable2, ...;
+
+<span class="k">CLOSE</span> nom_curseur;</code></pre>
+<p>Le nombre de variables du <code>FETCH ... INTO</code> doit être <strong>égal au nombre de colonnes</strong> du SELECT, dans le même ordre.</p>
+
+<h3>Ordre de déclaration dans le bloc BEGIN ... END</h3>
+<p>MySQL impose cet ordre. S'il n'est pas respecté, la procédure ne se crée pas :</p>
+<ol>
+  <li>Les <strong>variables</strong> (<code>DECLARE x INT;</code>)</li>
+  <li>Les <strong>curseurs</strong> (<code>DECLARE c CURSOR FOR ...</code>)</li>
+  <li>Les <strong>handlers</strong> (<code>DECLARE ... HANDLER ...</code>)</li>
+</ol>
+
+<h2>6. Le problème de la fin des lignes</h2>
+<p>Quand le curseur n'a plus de ligne à lire, le <code>FETCH</code> déclenche l'erreur <code>NOT FOUND</code>. Sans précaution, la procédure s'arrête avec une erreur.</p>
+<p>On prévoit donc un <strong>handler</strong> qui lève un indicateur de fin, et on sort de la boucle quand il vaut 1 :</p>
+<pre><code><span class="k">DECLARE</span> fini <span class="k">INT DEFAULT</span> 0;
+<span class="k">DECLARE CONTINUE HANDLER FOR NOT FOUND SET</span> fini = 1;</code></pre>
+<div class="box">
+  <strong>Schéma de la boucle</strong>
+  <code>OPEN</code> → boucle : <code>FETCH</code> → si <code>fini = 1</code> alors <code>LEAVE</code> → sinon traiter la ligne → recommencer → <code>CLOSE</code>
+</div>
+
+<h2>7. Exemple 1 – Acheter des logiciels avec un budget</h2>
+<p><strong>Problème :</strong> on a un budget. On regarde les logiciels un par un. Si le prix est inférieur ou égal au budget qui reste, on l'achète (le budget diminue). Sinon on passe au suivant.</p>
+<p><strong>Résultat voulu :</strong> le nombre de logiciels achetés et le budget restant.</p>
+<div class="box ok">
+  <strong>Pourquoi un curseur ?</strong>
+  Le budget restant change à chaque achat. Pour chaque ligne, il faut connaître ce qui s'est passé sur les lignes d'avant. Un SELECT ne peut pas faire ça.
+</div>
+<pre><code><span class="k">DELIMITER</span> $$
+<span class="k">CREATE PROCEDURE</span> Acheter(<span class="k">IN</span> budget <span class="k">DECIMAL</span>(10,2),
+                       <span class="k">OUT</span> nb <span class="k">INT</span>,
+                       <span class="k">OUT</span> reste <span class="k">DECIMAL</span>(10,2))
+<span class="k">BEGIN</span>
+  <span class="c">-- variables</span>
+  <span class="k">DECLARE</span> v_prix <span class="k">DECIMAL</span>(10,2);
+  <span class="k">DECLARE</span> fini <span class="k">INT DEFAULT</span> 0;
+
+  <span class="c">-- curseur : le prix de chaque logiciel</span>
+  <span class="k">DECLARE</span> c_log <span class="k">CURSOR FOR</span> <span class="k">SELECT</span> prixlog <span class="k">FROM</span> logiciel;
+
+  <span class="c">-- fin des lignes</span>
+  <span class="k">DECLARE CONTINUE HANDLER FOR NOT FOUND SET</span> fini = 1;
+
+  <span class="k">SET</span> nb = 0;
+  <span class="k">SET</span> reste = budget;
+
+  <span class="k">OPEN</span> c_log;
+
+  boucle: <span class="k">LOOP</span>
+    <span class="k">FETCH</span> c_log <span class="k">INTO</span> v_prix;
+    <span class="k">IF</span> fini = 1 <span class="k">THEN</span> <span class="k">LEAVE</span> boucle; <span class="k">END IF</span>;
+
+    <span class="c">-- si le logiciel rentre dans le budget restant, on l'achète</span>
+    <span class="k">IF</span> v_prix &lt;= reste <span class="k">THEN</span>
+      <span class="k">SET</span> reste = reste - v_prix;
+      <span class="k">SET</span> nb = nb + 1;
+    <span class="k">END IF</span>;
+  <span class="k">END LOOP</span>;
+
+  <span class="k">CLOSE</span> c_log;
+<span class="k">END</span>$$
+<span class="k">DELIMITER</span> ;</code></pre>
+<p>Appel :</p>
+<pre><code><span class="k">CALL</span> Acheter(10000, @nb, @reste);
+<span class="k">SELECT</span> @nb <span class="k">AS</span> logiciels_achetes, @reste <span class="k">AS</span> budget_restant;</code></pre>
+
+<h2>8. Exemple 2 – Appeler une procédure pour chaque ligne</h2>
+<p><strong>Problème :</strong> pour chaque développeur d'un projet, on veut enregistrer une ligne dans une table <code>journal</code> en appelant la procédure <code>AjouterJournal</code>.</p>
+<div class="box ok">
+  <strong>Pourquoi un curseur ?</strong>
+  On ne peut pas mettre un <code>CALL</code> dans un SELECT. Pour exécuter une procédure sur chaque ligne, on parcourt les lignes avec un curseur.
+</div>
+<p>Préparation (table et procédure appelée) :</p>
+<pre><code><span class="k">CREATE TABLE</span> journal (
+  numdev <span class="k">INT</span>,
+  message <span class="k">VARCHAR</span>(100)
+);
+
+<span class="k">DELIMITER</span> $$
+<span class="k">CREATE PROCEDURE</span> AjouterJournal(<span class="k">IN</span> p_numdev <span class="k">INT</span>, <span class="k">IN</span> p_msg <span class="k">VARCHAR</span>(100))
+<span class="k">BEGIN</span>
+  <span class="k">INSERT INTO</span> journal <span class="k">VALUES</span> (p_numdev, p_msg);
+<span class="k">END</span>$$
+<span class="k">DELIMITER</span> ;</code></pre>
+<p>Procédure avec curseur :</p>
+<pre><code><span class="k">DELIMITER</span> $$
+<span class="k">CREATE PROCEDURE</span> NotifierEquipe(<span class="k">IN</span> p_numproj <span class="k">INT</span>)
+<span class="k">BEGIN</span>
+  <span class="k">DECLARE</span> v_num <span class="k">INT</span>;
+  <span class="k">DECLARE</span> v_nom <span class="k">VARCHAR</span>(50);
+  <span class="k">DECLARE</span> fini <span class="k">INT DEFAULT</span> 0;
+
+  <span class="c">-- curseur : les développeurs du projet</span>
+  <span class="k">DECLARE</span> c_dev <span class="k">CURSOR FOR</span>
+    <span class="k">SELECT</span> d.numdev, d.nomdev
+    <span class="k">FROM</span> developpeur d
+    <span class="k">JOIN</span> realisation r <span class="k">ON</span> r.numdev = d.numdev
+    <span class="k">WHERE</span> r.numproj = p_numproj;
+
+  <span class="k">DECLARE CONTINUE HANDLER FOR NOT FOUND SET</span> fini = 1;
+
+  <span class="k">OPEN</span> c_dev;
+  <span class="k">FETCH</span> c_dev <span class="k">INTO</span> v_num, v_nom;      <span class="c">-- 1re lecture</span>
+
+  <span class="k">WHILE</span> fini = 0 <span class="k">DO</span>
+    <span class="k">CALL</span> AjouterJournal(v_num, <span class="k">CONCAT</span>(<span class="s">'Notifié : '</span>, v_nom));
+    <span class="k">FETCH</span> c_dev <span class="k">INTO</span> v_num, v_nom;    <span class="c">-- ligne suivante</span>
+  <span class="k">END WHILE</span>;
+
+  <span class="k">CLOSE</span> c_dev;
+<span class="k">END</span>$$
+<span class="k">DELIMITER</span> ;
+
+<span class="k">CALL</span> NotifierEquipe(1);
+<span class="k">SELECT</span> * <span class="k">FROM</span> journal;</code></pre>
+<div class="box">
+  <strong>Remarque</strong>
+  Avec <code>WHILE</code>, on fait un <code>FETCH</code> avant la boucle, puis un <code>FETCH</code> à la fin de chaque tour. Avec <code>LOOP</code>, un seul <code>FETCH</code> au début suffit.
+</div>
+
+<h2>9. Erreurs fréquentes</h2>
+<div class="scroll">
+<table>
+  <tr><th>Erreur</th><th>Conséquence</th><th>Solution</th></tr>
+  <tr><td>Oublier le handler <code>NOT FOUND</code></td><td>Erreur « No data » à la fin des lignes</td><td>Déclarer le handler qui met <code>fini = 1</code></td></tr>
+  <tr><td>Mauvais ordre des <code>DECLARE</code></td><td>La procédure ne se crée pas</td><td>Variables, puis curseurs, puis handlers</td></tr>
+  <tr><td>Nombre de variables ≠ nombre de colonnes</td><td>Erreur au <code>FETCH</code></td><td>Une variable par colonne, même ordre</td></tr>
+  <tr><td>Oublier <code>CLOSE</code></td><td>Mémoire non libérée</td><td>Toujours fermer le curseur</td></tr>
+  <tr><td>Nom de variable identique à une colonne</td><td>Le <code>WHERE</code> compare la colonne à elle-même</td><td>Préfixer les variables (<code>v_</code>, <code>p_</code>)</td></tr>
+</table>
+</div>
+
+<h2>10. Méthodologie en 6 points</h2>
+<ol>
+  <li>Écrire d'abord le <code>SELECT</code> et le tester seul.</li>
+  <li>Déclarer une variable par colonne, puis le curseur, puis le handler <code>NOT FOUND</code>.</li>
+  <li><code>OPEN</code> le curseur.</li>
+  <li>Dans une boucle : <code>FETCH</code>, tester <code>fini</code>, traiter la ligne.</li>
+  <li><code>CLOSE</code> le curseur.</li>
+  <li>Vérifier qu'une requête simple (<code>UPDATE</code>, <code>SUM</code>...) ne ferait pas le même travail.</li>
+</ol>
+
+<h2>Résumé</h2>
+<div class="box ok">
+  <strong>À retenir</strong>
+  Un curseur parcourt un résultat de SELECT ligne par ligne : <code>DECLARE</code> → <code>OPEN</code> → <code>FETCH</code> (en boucle) → <code>CLOSE</code>. Il est en lecture seule, non navigable et insensible aux modifications faites après l'ouverture. Le handler <code>NOT FOUND</code> permet de détecter la fin des lignes.
+</div>
+
+</main>
+</body>
+</html>

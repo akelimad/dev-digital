@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Les transactions en MySQL</title>
+<style>
+:root{--bg:#f4f7fa;--card:#fff;--ink:#14213d;--mute:#5a6578;--acc:#0b7285;--accbg:#e3f3f6;--ok:#2b8a3e;--okbg:#e6f4ea;--ko:#c92a2a;--kobg:#fdeaea;--warn:#e67700;--warnbg:#fff4e0;--code:#10192e;--line:#d8e0ea}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.65 "Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+header{background:var(--ink);color:#fff;padding:48px 20px 40px}
+header div,main{max-width:900px;margin:0 auto}
+header h1{margin:0 0 8px;font-size:2.2rem;line-height:1.2}
+header p{margin:0;color:#b9c6dd;max-width:60ch}
+main{padding:24px 20px 60px}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:22px 26px;margin:20px 0}
+h2{margin:0 0 12px;font-size:1.4rem;color:var(--acc)}
+h3{margin:18px 0 6px;font-size:1.1rem}
+p{margin:8px 0;max-width:75ch}
+code{background:var(--accbg);padding:1px 6px;border-radius:4px;font:0.92em Consolas,Menlo,monospace}
+pre{background:var(--code);color:#e6edf7;padding:14px 16px;border-radius:8px;overflow-x:auto;font:0.9rem/1.6 Consolas,Menlo,monospace;margin:10px 0}
+pre code{background:none;padding:0;color:inherit;font:inherit}
+.k{color:#7cc4ff;font-weight:600}.s{color:#a5e075}.n{color:#ffb86b}.c{color:#7f8da6;font-style:italic}
+.box{border-left:5px solid var(--acc);background:var(--accbg);padding:10px 16px;border-radius:6px;margin:12px 0}
+.box.warn{border-color:var(--warn);background:var(--warnbg)}
+.box.ok{border-color:var(--ok);background:var(--okbg)}
+.box.ko{border-color:var(--ko);background:var(--kobg)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:12px 0}
+.two div{border-radius:8px;padding:12px 16px}
+.two .a{background:var(--okbg);border:1px solid var(--ok)}
+.two .b{background:var(--kobg);border:1px solid var(--ko)}
+.two h3{margin-top:0}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0;font-weight:600}
+.flow span{padding:8px 14px;border-radius:8px;background:var(--accbg)}
+.flow .a{background:var(--okbg);color:var(--ok)}.flow .b{background:var(--kobg);color:var(--ko)}
+.flow i{font-style:normal;color:var(--mute)}
+table{border-collapse:collapse;width:100%;margin:10px 0;font-size:0.95rem}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--accbg)}
+.tw{overflow-x:auto}
+.bank{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px;margin:16px 0;text-align:center}
+.bank .acc{border:2px solid var(--acc);border-radius:10px;padding:10px 18px;background:var(--accbg);font-weight:600}
+.bank .arr{font-weight:700;color:var(--mute)}
+.bank .deb{color:var(--ko)}.bank .cre{color:var(--ok)}
+details{border:1px solid var(--line);border-radius:8px;margin:8px 0;background:#fafcfe}
+summary{cursor:pointer;padding:8px 14px;font-weight:600;color:var(--acc)}
+details pre{margin:0 10px 10px}
+.ex{border-left:4px solid var(--acc);padding-left:14px;margin:18px 0}
+ol,ul{padding-left:22px}
+.cw{position:relative;margin:10px 0}
+.cw pre{margin:0;padding-top:30px}
+details .cw{margin:0 10px 10px}
+.cp{position:absolute;top:6px;right:8px;background:#22314f;color:#cfe0f5;border:1px solid #3a4d73;border-radius:6px;padding:2px 10px;font:600 .78rem "Segoe UI",Roboto,Arial,sans-serif;cursor:pointer}
+.cp:hover{background:#2e4268}
+.cp:focus-visible{outline:2px solid #7cc4ff;outline-offset:2px}
+.cp.done{background:var(--ok);border-color:var(--ok);color:#fff}
+@media(max-width:600px){header h1{font-size:1.7rem}section{padding:16px}}
+</style>
+</head>
+<body>
+<header><div>
+<h1>Les transactions en MySQL</h1>
+<p>Exécuter plusieurs requêtes comme un seul bloc : tout réussit, ou rien n'est enregistré.</p>
+</div></header>
+<main>
+
+<section>
+<h2>1. Rôle d'une transaction</h2>
+<p>Par défaut, le client MySQL utilise la <b>validation automatique</b> (<i>autocommit</i>) : chaque requête <code>INSERT</code>, <code>UPDATE</code> ou <code>DELETE</code> est enregistrée immédiatement et on ne peut plus l'annuler. Voir la section suivante pour la gérer.</p>
+<p>Une <b>transaction</b> regroupe une ou plusieurs requêtes en <b>un seul bloc</b> :</p>
+<ul>
+<li>on peut <b>annuler</b> les modifications si quelque chose se passe mal ;</li>
+<li>on garde la base dans un état <b>cohérent</b> : tout est fait, ou rien n'est fait.</li>
+</ul>
+<div class="box"><b>Règle d'or :</b> « tout ou rien ». Jamais la moitié d'une opération.</div>
+</section>
+
+<section>
+<h2>2. La validation automatique (autocommit)</h2>
+<p>Tout ce cours repose sur elle : il faut donc savoir <b>la vérifier, la désactiver et la réactiver</b>.</p>
+<p>Quand l'autocommit est activé, chaque requête est une mini-transaction validée tout de suite. Impossible de l'annuler avec <code>ROLLBACK</code>.</p>
+<div class="tw"><table>
+<tr><th>Action</th><th>Commande</th></tr>
+<tr><td>Vérifier l'état (1 = activée, 0 = désactivée)</td><td><code>SELECT @@autocommit;</code></td></tr>
+<tr><td>Désactiver pour la session</td><td><code>SET autocommit = 0;</code> ou <code>SET autocommit = OFF;</code></td></tr>
+<tr><td>Réactiver</td><td><code>SET autocommit = 1;</code> ou <code>SET autocommit = ON;</code></td></tr>
+</table></div>
+<pre><code>SELECT @@autocommit;
+SET autocommit = 0;
+SELECT @@autocommit;
+SET autocommit = 1;</code></pre>
+<h3>Deux façons d'obtenir une transaction</h3>
+<div class="tw"><table>
+<tr><th></th><th>START TRANSACTION (ou BEGIN)</th><th>SET autocommit = 0</th></tr>
+<tr><td>Durée</td><td>Une seule transaction. Après <code>COMMIT</code> ou <code>ROLLBACK</code>, l'autocommit revient.</td><td>Toute la session, jusqu'à <code>SET autocommit = 1</code>.</td></tr>
+<tr><td>Après COMMIT / ROLLBACK</td><td>Les requêtes suivantes sont de nouveau validées automatiquement.</td><td>Une nouvelle transaction démarre toute seule : il faut penser à valider à chaque fois.</td></tr>
+<tr><td>Risque</td><td>Faible.</td><td>Oublier le <code>COMMIT</code> : les changements restent en attente et sont perdus à la déconnexion.</td></tr>
+</table></div>
+<div class="box ok"><b>Conseil :</b> pour débuter, gardez l'autocommit activé et utilisez <code>START TRANSACTION</code> chaque fois que vous voulez pouvoir annuler.</div>
+</section>
+
+<section>
+<h2>3. Syntaxe</h2>
+<p>On démarre la transaction avec <code>START TRANSACTION</code> ou <code>BEGIN</code> (les deux font la même chose). Après les requêtes de modification, on termine obligatoirement par <code>COMMIT</code> ou <code>ROLLBACK</code>.</p>
+<pre><code>-- début de la transaction (ou BEGIN;)
+START TRANSACTION;
+
+   requête 1;
+   requête 2;
+
+-- valider
+COMMIT;
+-- ou, pour annuler :
+ROLLBACK;</code></pre>
+<div class="flow"><span>START TRANSACTION</span><i>→</i><span>requêtes</span><i>→</i><span class="a">COMMIT</span><i>ou</i><span class="b">ROLLBACK</span></div>
+<h3>Exemple avec une table</h3>
+<pre><code>-- début de la transaction
+BEGIN;
+INSERT INTO mytable VALUES (1, 'foo', 'bar', 'bas');
+-- on voit la nouvelle ligne
+SELECT * FROM mytable;
+-- utiliser ROLLBACK à la place pour annuler l'opération
+COMMIT;</code></pre>
+<div class="box warn"><b>Attention :</b> les transactions fonctionnent avec le moteur <b>InnoDB</b> (le moteur par défaut). Certaines commandes valident automatiquement la transaction en cours et ne peuvent pas être annulées : <code>CREATE</code>, <code>ALTER</code>, <code>DROP</code>, <code>TRUNCATE</code>, <code>LOCK TABLES</code>.</div>
+</section>
+
+<section>
+<h2>4. Rôle de COMMIT et de ROLLBACK</h2>
+<div class="two">
+<div class="a"><h3>COMMIT</h3>
+<p><b>Valide</b> la transaction.</p>
+<ul><li>Tous les changements sont enregistrés <b>définitivement</b>.</li><li>Ils deviennent visibles pour les autres utilisateurs.</li><li>On ne peut plus revenir en arrière.</li></ul></div>
+<div class="b"><h3>ROLLBACK</h3>
+<p><b>Annule</b> la transaction.</p>
+<ul><li>Tous les changements depuis <code>START TRANSACTION</code> sont défaits.</li><li>La base revient à son état de départ.</li><li>C'est ce qu'on utilise en cas d'erreur.</li></ul></div>
+</div>
+<div class="box">Tant que <code>COMMIT</code> n'est pas exécuté, les modifications ne sont visibles que dans <b>votre</b> session.</div>
+</section>
+
+<section>
+<h2>5. Exemple : le virement bancaire</h2>
+<p>C'est le meilleur exemple pour comprendre une transaction : transférer <b>200 DH</b> entre 2 comptes de la même banque.</p>
+<div class="bank">
+<div class="acc">Compte émetteur<br>n° 101</div>
+<div class="arr deb">Débit −200 DH</div><div class="arr">→</div><div class="arr cre">Crédit +200 DH</div>
+<div class="acc">Compte récepteur<br>n° 102</div>
+</div>
+<div class="box ko"><b>Le problème :</b> le débit a réussi mais le crédit n'a pas eu lieu (problème de base de données, coupure...). Les 200 DH ont disparu : la base est dans un état <b>incohérent</b>.</div>
+<div class="box ok"><b>La solution :</b> avec une transaction, si le crédit échoue, le débit est annulé. Aucun changement dans la base.</div>
+<h3>Le schéma de la banque</h3>
+<div class="tw"><table>
+<tr><th>Table</th><th>Colonnes</th></tr>
+<tr><td><code>client</code></td><td>num, nom, prenom, adr, tel</td></tr>
+<tr><td><code>compte</code></td><td>num, solde, type (<code>CC</code> = compte courant, <code>CE</code> = compte épargne), num_client (clé étrangère vers <code>client</code>)</td></tr>
+<tr><td><code>operations</code></td><td>num, type (<code>retrait</code> ou <code>versement</code>), montant, num_compte (clé étrangère vers <code>compte</code>), date_o</td></tr>
+</table></div>
+<p>Un virement modifie <b>2 comptes</b> et ajoute <b>2 lignes</b> dans <code>operations</code> (un retrait et un versement) : soit 4 requêtes qui doivent réussir ensemble.</p>
+<h3>Préparation</h3>
+<pre><code>CREATE TABLE client (
+    num INT PRIMARY KEY,
+    nom VARCHAR(50),
+    prenom VARCHAR(50),
+    adr VARCHAR(100),
+    tel VARCHAR(20)
+) ENGINE = InnoDB;
+
+CREATE TABLE compte (
+    num INT PRIMARY KEY,
+    solde DECIMAL(10,2),
+    type CHAR(2),
+    num_client INT,
+    FOREIGN KEY (num_client) REFERENCES client(num)
+) ENGINE = InnoDB;
+
+CREATE TABLE operations (
+    num INT AUTO_INCREMENT PRIMARY KEY,
+    type VARCHAR(20),
+    montant DECIMAL(10,2),
+    num_compte INT,
+    date_o DATE,
+    FOREIGN KEY (num_compte) REFERENCES compte(num)
+) ENGINE = InnoDB;
+
+INSERT INTO client VALUES (1, 'Alaoui', 'Amine', 'Rabat', '0600000001');
+INSERT INTO client VALUES (2, 'Benani', 'Salma', 'Skhirat', '0600000002');
+
+INSERT INTO compte VALUES (101, 1000, 'CC', 1);
+INSERT INTO compte VALUES (102, 500, 'CE', 2);</code></pre>
+<h3>Cas 1 : tout se passe bien, on valide</h3>
+<p>Virement de 200 DH du compte 101 vers le compte 102 :</p>
+<pre><code>START TRANSACTION;
+
+-- débiter le compte 101
+UPDATE compte SET solde = solde - 200 WHERE num = 101;
+-- créditer le compte 102
+UPDATE compte SET solde = solde + 200 WHERE num = 102;
+
+-- enregistrer les 2 opérations : retrait puis versement
+INSERT INTO operations (type, montant, num_compte, date_o) VALUES ('retrait', 200, 101, CURDATE());
+INSERT INTO operations (type, montant, num_compte, date_o) VALUES ('versement', 200, 102, CURDATE());
+
+-- valider
+COMMIT;
+
+-- résultat attendu : compte 101 = 800, compte 102 = 700
+SELECT * FROM compte;
+-- résultat attendu : 2 lignes d'opérations
+SELECT * FROM operations;</code></pre>
+<h3>Cas 2 : un problème survient, on annule</h3>
+<pre><code>START TRANSACTION;
+
+-- débit réussi
+UPDATE compte SET solde = solde - 200 WHERE num = 101;
+INSERT INTO operations (type, montant, num_compte, date_o) VALUES ('retrait', 200, 101, CURDATE());
+-- le crédit du compte 102 échoue...
+
+-- tout est annulé : le solde et l'opération
+ROLLBACK;
+
+-- résultat attendu : les soldes n'ont pas changé
+SELECT * FROM compte;
+-- résultat attendu : aucune nouvelle opération
+SELECT * FROM operations;</code></pre>
+</section>
+
+<section>
+<h2>6. Démo : le temps gagné avec autocommit = 0</h2>
+<p>Avec l'autocommit activé, chaque <code>INSERT</code> est validé, donc écrit sur le disque, <b>un par un</b>. Avec <code>autocommit = 0</code>, une seule validation a lieu à la fin, au <code>COMMIT</code>. Mesurons la différence.</p>
+<div class="box warn"><b>Pourquoi pas 1000 lignes en lots de 100 ?</b> Un <code>INSERT</code> de 100 lignes ne fait qu'<b>une</b> validation. Avec 10 lots il n'y a que 10 validations : l'écart est trop petit pour être visible. Il faut beaucoup d'<code>INSERT</code> d'<b>une seule ligne</b>.</div>
+<h3>La table et la procédure de test</h3>
+<pre><code>CREATE TABLE test_insert (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    valeur VARCHAR(30)
+) ENGINE = InnoDB;
+
+DELIMITER $$
+CREATE PROCEDURE test_commit(IN n INT, IN auto TINYINT)
+BEGIN
+    DECLARE i INT DEFAULT 1;
+    DECLARE v_debut DATETIME(6);
+
+    -- TRUNCATE valide tout seul : on le fait avant de lancer le chronomètre
+    TRUNCATE TABLE test_insert;
+    SET autocommit = auto;
+    SET v_debut = SYSDATE(6);
+
+    WHILE i <= n DO
+        INSERT INTO test_insert (valeur) VALUES (CONCAT('ligne ', i));
+        SET i = i + 1;
+    END WHILE;
+
+    -- le COMMIT fait partie du temps mesuré
+    COMMIT;
+
+    SELECT n AS lignes,
+           auto AS autocommit,
+           TIMESTAMPDIFF(MICROSECOND, v_debut, SYSDATE(6)) / 1000000 AS secondes;
+
+    SET autocommit = 1;
+END$$
+DELIMITER ;</code></pre>
+<p>La procédure affiche <b>une seule ligne</b> : le temps global, pas celui de chaque requête.</p>
+<h3>Lancer les deux tests</h3>
+<pre><code>-- test 1 : autocommit activé (10 000 validations)
+CALL test_commit(10000, 1);
+
+-- test 2 : autocommit désactivé (1 seule validation)
+CALL test_commit(10000, 0);</code></pre>
+<h3>Résultats à noter</h3>
+<div class="tw"><table>
+<tr><th>Test</th><th>autocommit</th><th>Nombre de validations</th><th>Temps (secondes)</th></tr>
+<tr><td>1</td><td><code>1</code></td><td>10 000</td><td></td></tr>
+<tr><td>2</td><td><code>0</code></td><td>1</td><td></td></tr>
+</table></div>
+<div class="box ok"><b>Conclusion :</b> moins il y a de validations, plus l'insertion est rapide. Pour de gros volumes, on regroupe les requêtes dans une transaction.</div>
+<h3>Si l'écart est trop faible</h3>
+<p>Augmentez <code>n</code> (par exemple 50 000) et vérifiez ce réglage :</p>
+<pre><code>SHOW VARIABLES LIKE 'innodb_flush_log_at_trx_commit';</code></pre>
+<p>La valeur <code>1</code> force l'écriture sur le disque à chaque validation : c'est elle qui rend les validations coûteuses. Avec <code>0</code> ou <code>2</code>, l'écart sera très réduit.</p>
+</section>
+
+<section>
+<h2>7. TP : transactions sur la base Glogiciels</h2>
+<div class="box warn"><b>Avant de commencer :</b> les noms de colonnes ci-dessous (<code>numproj</code>, <code>titreproj</code>, <code>codlog</code>, <code>nomlog</code>, <code>prixlog</code>, <code>numdev</code>...) sont à adapter à votre script de la base <code>Glogiciels</code>.</div>
+
+<div class="ex"><h3>Exercice 1 : annuler une insertion</h3>
+<p>Démarrez une transaction, insérez un nouveau projet, vérifiez avec un <code>SELECT</code> qu'il existe, puis annulez. Vérifiez qu'il a disparu.</p>
+<details><summary>Voir la solution</summary>
+<pre><code>START TRANSACTION;
+INSERT INTO projet (numproj, titreproj) VALUES (10, 'Gestion de stock');
+-- résultat attendu : 1 ligne
+SELECT * FROM projet WHERE numproj = 10;
+ROLLBACK;
+-- résultat attendu : 0 ligne
+SELECT * FROM projet WHERE numproj = 10;</code></pre></details></div>
+
+<div class="ex"><h3>Exercice 2 : valider une insertion</h3>
+<p>Refaites l'exercice 1 avec <code>COMMIT</code> à la place de <code>ROLLBACK</code>. Que constatez-vous ? Peut-on encore annuler ?</p>
+<details><summary>Voir la solution</summary>
+<pre><code>START TRANSACTION;
+INSERT INTO projet (numproj, titreproj) VALUES (10, 'Gestion de stock');
+COMMIT;
+-- sans effet : la transaction est déjà terminée
+ROLLBACK;
+-- résultat attendu : la ligne existe toujours
+SELECT * FROM projet WHERE numproj = 10;</code></pre></details></div>
+
+<div class="ex"><h3>Exercice 3 : modification annulée</h3>
+<p>Augmentez de 10 % le prix de tous les logiciels du projet 10, affichez les nouveaux prix, puis annulez et vérifiez que les anciens prix sont revenus.</p>
+<details><summary>Voir la solution</summary>
+<pre><code>START TRANSACTION;
+UPDATE logiciel SET prixlog = prixlog * 1.10 WHERE numproj = 10;
+SELECT codlog, nomlog, prixlog FROM logiciel WHERE numproj = 10;
+ROLLBACK;
+SELECT codlog, nomlog, prixlog FROM logiciel WHERE numproj = 10;</code></pre></details></div>
+
+<div class="ex"><h3>Exercice 4 : un bloc « tout ou rien »</h3>
+<p>Dans une même transaction : créez le projet 11, ajoutez-lui un logiciel, puis affectez le développeur 1 à ce projet. Validez.</p>
+<details><summary>Voir la solution</summary>
+<pre><code>START TRANSACTION;
+INSERT INTO projet (numproj, titreproj) VALUES (11, 'Site e-commerce');
+INSERT INTO logiciel (codlog, nomlog, prixlog, numproj) VALUES (101, 'ShopWeb', 2000, 11);
+INSERT INTO realisation (numdev, numproj) VALUES (1, 11);
+COMMIT;</code></pre></details></div>
+
+<div class="ex"><h3>Exercice 5 : une erreur au milieu</h3>
+<p>Refaites l'exercice 4 avec le projet 12, mais en affectant un développeur qui n'existe pas (ex. 999). MySQL refuse la dernière requête (clé étrangère). Que faut-il faire ? Vérifiez ensuite que le projet 12 et son logiciel n'existent pas.</p>
+<details><summary>Voir la solution</summary>
+<pre><code>START TRANSACTION;
+INSERT INTO projet (numproj, titreproj) VALUES (12, 'Application RH');
+INSERT INTO logiciel (codlog, nomlog, prixlog, numproj) VALUES (102, 'RHPlus', 1800, 12);
+-- ERREUR
+INSERT INTO realisation (numdev, numproj) VALUES (999, 12);
+-- annule aussi les 2 premiers INSERT
+ROLLBACK;
+-- résultat attendu : 0 ligne
+SELECT * FROM projet WHERE numproj = 12;</code></pre></details></div>
+
+<div class="ex"><h3>Exercice 6 : autocommit</h3>
+<p>Désactivez la validation automatique, supprimez un logiciel, annulez, puis réactivez l'autocommit.</p>
+<details><summary>Voir la solution</summary>
+<pre><code>SET autocommit = 0;
+DELETE FROM logiciel WHERE codlog = 101;
+-- le logiciel est de retour
+ROLLBACK;
+SET autocommit = 1;</code></pre></details></div>
+
+<div class="ex"><h3>Exercice 7 (bonus) : le virement dans une procédure</h3>
+<p>Créez la procédure <code>virement(IN p_emetteur, IN p_recepteur, IN p_montant)</code> sur la base de la banque : elle met à jour les 2 comptes et enregistre les 2 opérations. Si le solde de l'émetteur devient négatif, annulez la transaction. Sinon, validez.</p>
+<details><summary>Voir la solution</summary>
+<pre><code>DELIMITER $$
+CREATE PROCEDURE virement(IN p_emetteur INT,
+                          IN p_recepteur INT,
+                          IN p_montant DECIMAL(10,2))
+BEGIN
+    DECLARE v_solde DECIMAL(10,2);
+
+    START TRANSACTION;
+    UPDATE compte SET solde = solde - p_montant WHERE num = p_emetteur;
+    UPDATE compte SET solde = solde + p_montant WHERE num = p_recepteur;
+    INSERT INTO operations (type, montant, num_compte, date_o)
+        VALUES ('retrait', p_montant, p_emetteur, CURDATE());
+    INSERT INTO operations (type, montant, num_compte, date_o)
+        VALUES ('versement', p_montant, p_recepteur, CURDATE());
+
+    SELECT solde INTO v_solde FROM compte WHERE num = p_emetteur;
+
+    IF v_solde &lt; 0 THEN
+        ROLLBACK;
+        SELECT 'Virement annulé : solde insuffisant' AS message;
+    ELSE
+        COMMIT;
+        SELECT 'Virement effectué' AS message;
+    END IF;
+END$$
+DELIMITER ;
+
+CALL virement(101, 102, 200);</code></pre></details></div>
+</section>
+
+<section>
+<h2>À retenir</h2>
+<ul>
+<li>MySQL valide chaque requête automatiquement (autocommit). Une transaction permet de grouper et d'annuler.</li>
+<li><code>START TRANSACTION</code> (ou <code>BEGIN</code>) : début. <code>COMMIT</code> : valider. <code>ROLLBACK</code> : annuler.</li>
+<li>Transaction = « tout ou rien ». Exemple type : le virement bancaire.</li>
+</ul>
+</section>
+
+</main>
+<script>
+(function(){
+var RE=/(--[^\n]*)|('[^']*')|\b(START TRANSACTION|BEGIN|COMMIT|ROLLBACK|TRUNCATE TABLE|SHOW VARIABLES|INSERT INTO|VALUES|WHILE|DO|DEFAULT|LIKE|FOREIGN KEY|REFERENCES|AUTO_INCREMENT|UPDATE|SET|DELETE|FROM|WHERE|SELECT|INTO|CREATE TABLE|CREATE PROCEDURE|PRIMARY KEY|ENGINE|DELIMITER|DECLARE|IF|THEN|ELSE|END|IN|CALL|AS)\b|\b(\d+(?:\.\d+)?)\b/g;
+function fallback(text){
+  var a=document.createElement('textarea');
+  a.value=text;a.style.position='fixed';a.style.opacity='0';
+  document.body.appendChild(a);a.select();
+  var r=false;try{r=document.execCommand('copy');}catch(e){}
+  document.body.removeChild(a);return r;
+}
+document.querySelectorAll('pre').forEach(function(pre){
+  var el=pre.querySelector('code');if(!el)return;
+  var raw=el.textContent;
+  var t=raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  el.innerHTML=t.replace(RE,function(m,c,str,k){
+    var cls=c?'c':str?'s':k?'k':'n';
+    return '<span class="'+cls+'">'+m+'</span>';
+  });
+  var w=document.createElement('div');w.className='cw';
+  pre.parentNode.insertBefore(w,pre);w.appendChild(pre);
+  var b=document.createElement('button');
+  b.type='button';b.className='cp';b.textContent='Copier';
+  b.setAttribute('aria-label','Copier le code');
+  function ok(){
+    b.textContent='Copié !';b.classList.add('done');
+    setTimeout(function(){b.textContent='Copier';b.classList.remove('done');},1800);
+  }
+  b.addEventListener('click',function(){
+    if(navigator.clipboard&&window.isSecureContext){
+      navigator.clipboard.writeText(raw).then(ok,function(){if(fallback(raw))ok();});
+    }else if(fallback(raw)){ok();}
+  });
+  w.appendChild(b);
+});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Événements planifiés (Events) – MySQL</title>
+<style>
+:root{--bg:#f6f8fb;--card:#fff;--txt:#1f2933;--mut:#5b6b7a;--pri:#1565c0;--bd:#dde4ec;--code:#0f172a;--ok:#e8f5e9;--warn:#fff8e1;--info:#e3f2fd}
+@media (prefers-color-scheme:dark){:root{--bg:#10151c;--card:#18202a;--txt:#e6ebf1;--mut:#9aa9b8;--pri:#64b5f6;--bd:#2a3644;--code:#0b1017;--ok:#1b2e1f;--warn:#33290f;--info:#13263a}}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--txt);line-height:1.65}
+header{background:var(--pri);color:#fff;padding:28px 20px;text-align:center}
+header h1{margin:0 0 6px;font-size:1.7rem}
+header p{margin:0;opacity:.9}
+main{max-width:860px;margin:0 auto;padding:20px 16px 60px}
+section{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:18px 22px;margin:18px 0}
+h2{margin:0 0 10px;font-size:1.25rem;color:var(--pri)}
+h2 span{display:inline-block;background:var(--pri);color:#fff;border-radius:50%;width:28px;height:28px;line-height:28px;text-align:center;font-size:.9rem;margin-right:8px}
+p,li{margin:.4em 0}
+pre{background:var(--code);color:#e2e8f0;padding:14px 16px;border-radius:8px;overflow-x:auto;font-size:.9rem;line-height:1.5;margin:10px 0}
+code{font-family:Consolas,"Courier New",monospace}
+:not(pre)>code{background:var(--info);padding:1px 6px;border-radius:4px;font-size:.9em}
+.k{color:#7aa2f7;font-weight:600}.s{color:#9ece6a}.n{color:#ff9e64}.c{color:#7f8ea3;font-style:italic}.f{color:#e0af68}
+.box{border-radius:8px;padding:10px 14px;margin:12px 0}
+.info{background:var(--info)}.ok{background:var(--ok)}.warn{background:var(--warn)}
+table{border-collapse:collapse;width:100%;margin:10px 0;font-size:.95rem}
+th,td{border:1px solid var(--bd);padding:8px 10px;text-align:left}
+th{background:var(--info)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Événements planifiés (Events)</h1>
+  <p>MySQL – Module M203 : Gestion de données</p>
+</header>
+<main>
+
+<section>
+  <h2><span>1</span>Définition</h2>
+  <p>Un <b>événement MySQL</b> est une tâche qui s'exécute <b>automatiquement selon un calendrier</b> défini à l'avance. On parle aussi d'<b>événement planifié</b>.</p>
+  <p>MySQL utilise un thread spécial, le <b>planificateur d'événements</b> (<i>event scheduler</i>), pour exécuter tous les événements.</p>
+  <div class="box info">💡 <b>Image simple :</b> un événement, c'est comme une <b>alarme</b> sur le téléphone : on la programme une fois, et elle se déclenche toute seule à l'heure voulue.</div>
+</section>
+
+<section>
+  <h2><span>2</span>Pourquoi les utiliser ?</h2>
+  <ul>
+    <li>Automatiser des tâches répétitives, sans intervention humaine.</li>
+    <li>Ne plus dépendre d'un programme externe (cron, script...) : tout reste dans MySQL.</li>
+    <li>Gagner du temps et éviter les oublis.</li>
+  </ul>
+  <h3>Cas d'utilisation</h3>
+  <ul>
+    <li>Supprimer chaque nuit les anciennes données (logs, sessions expirées).</li>
+    <li>Générer chaque jour ou chaque mois des statistiques et rapports.</li>
+    <li>Faire des sauvegardes ou archiver des tables à intervalle régulier.</li>
+    <li>Mettre à jour automatiquement un état (ex. : abonnement expiré).</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span>3</span>Activer le planificateur</h2>
+  <p>Les événements ne s'exécutent que si le planificateur est activé. On vérifie son état :</p>
+<pre><code>SHOW VARIABLES LIKE 'event_scheduler';</code></pre>
+  <p>Valeur <code>ON</code> = actif, <code>OFF</code> = arrêté. Pour l'activer :</p>
+<pre><code>SET GLOBAL event_scheduler = ON;</code></pre>
+  <p>On peut aussi voir le thread du planificateur dans la liste des processus :</p>
+<pre><code>SHOW PROCESSLIST;</code></pre>
+  <p>On y trouve une ligne dont l'utilisateur est <code>event_scheduler</code> et l'état <code>Waiting on empty queue</code> (ou similaire).</p>
+</section>
+
+<section>
+  <h2><span>4</span>Syntaxe</h2>
+<pre><code>CREATE EVENT [IF NOT EXISTS] nom_evenement
+ON SCHEDULE planification
+[ENABLE | DISABLE]
+DO
+  instruction;</code></pre>
+  <p>La <b>planification</b> peut prendre deux formes :</p>
+  <table>
+    <tr><th>Type</th><th>Syntaxe</th><th>Signification</th></tr>
+    <tr><td>Une seule fois</td><td><code>AT date_heure</code></td><td>Exécuté une fois à ce moment précis</td></tr>
+    <tr><td>Répétitif</td><td><code>EVERY n unité [STARTS ...] [ENDS ...]</code></td><td>Exécuté toutes les n minutes, heures, jours...</td></tr>
+  </table>
+  <p>Unités possibles : <code>SECOND</code>, <code>MINUTE</code>, <code>HOUR</code>, <code>DAY</code>, <code>WEEK</code>, <code>MONTH</code>, <code>YEAR</code>.</p>
+  <div class="box info">Si l'action contient <b>plusieurs instructions</b>, on utilise un bloc <code>BEGIN ... END</code> (comme dans une procédure stockée, avec <code>DELIMITER</code>).</div>
+</section>
+
+<section>
+  <h2><span>5</span>Exemples</h2>
+  <p>On prépare d'abord une table pour recevoir les résultats :</p>
+<pre><code>CREATE TABLE messages (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  message VARCHAR(255),
+  created_at DATETIME
+);</code></pre>
+
+  <h3>Exemple 1 : événement exécuté une seule fois</h3>
+<pre><code>CREATE EVENT test_event_01
+ON SCHEDULE AT CURRENT_TIMESTAMP + INTERVAL 1 MINUTE
+DO
+  INSERT INTO messages (message, created_at)
+  VALUES ('Test MySQL one-time Event', NOW());</code></pre>
+  <p>Dans 1 minute, une ligne sera ajoutée dans <code>messages</code>. Ensuite, l'événement est <b>supprimé automatiquement</b> (comportement par défaut).</p>
+
+  <h3>Exemple 2 : événement récurrent</h3>
+<pre><code>CREATE EVENT test_event_03
+ON SCHEDULE EVERY 1 MINUTE
+  STARTS CURRENT_TIMESTAMP
+  ENDS CURRENT_TIMESTAMP + INTERVAL 1 HOUR
+DO
+  INSERT INTO messages (message, created_at)
+  VALUES ('Test MySQL recurring Event', NOW());</code></pre>
+  <p>Explication :</p>
+  <ul>
+    <li><code>EVERY 1 MINUTE</code> : se répète toutes les minutes.</li>
+    <li><code>STARTS CURRENT_TIMESTAMP</code> : démarre maintenant.</li>
+    <li><code>ENDS CURRENT_TIMESTAMP + INTERVAL 1 HOUR</code> : s'arrête après 1 heure (donc environ 60 lignes insérées).</li>
+    <li><code>DO ...</code> : l'action à réaliser à chaque déclenchement.</li>
+  </ul>
+  <p>Pour vérifier le résultat :</p>
+<pre><code>SELECT * FROM messages;</code></pre>
+  <div class="box warn">⚠️ <b>Attention aux erreurs fréquentes :</b> ne pas oublier la parenthèse fermante après <code>created_at</code> et utiliser des <b>apostrophes droites</b> <code>'...'</code> (et non des guillemets typographiques copiés depuis Word ou PowerPoint).</div>
+</section>
+
+<section>
+  <h2><span>6</span>Gérer les événements</h2>
+<pre><code>-- Afficher tous les événements de la base
+SHOW EVENTS;
+
+-- Désactiver un événement (sans le supprimer)
+ALTER EVENT test_event_03 DISABLE;
+
+-- Le réactiver
+ALTER EVENT test_event_03 ENABLE;
+
+-- Supprimer un événement
+DROP EVENT IF EXISTS test_event_03;</code></pre>
+  <div class="box ok">✅ Après le test, pensez à <b>supprimer</b> l'événement récurrent, sinon il continue à remplir la table jusqu'à sa date de fin.</div>
+</section>
+
+<section>
+  <h2><span>7</span>Cas pratiques sur la base Glogiciels</h2>
+  <p>Voici 4 situations réelles pour notre base : <code>developpeur</code>, <code>projet</code>, <code>logiciel</code>, <code>realisation</code>.</p>
+  <div class="box info">💡 <b>Pour tester en classe :</b> remplacez la planification par <code>EVERY 1 MINUTE</code> afin de voir le résultat tout de suite. En situation réelle, on utilise <code>EVERY 1 DAY</code>.</div>
+
+  <h3>Cas 1 : archiver automatiquement les projets terminés</h3>
+  <p><b>Besoin :</b> chaque nuit, copier dans une table d'archive les projets dont la date de fin est dépassée.</p>
+<pre><code>CREATE TABLE projet_archive LIKE projet;
+
+CREATE EVENT ev_archiver_projets
+ON SCHEDULE EVERY 1 DAY
+  STARTS CURRENT_DATE + INTERVAL 1 DAY + INTERVAL 2 HOUR
+DO
+  INSERT INTO projet_archive
+  SELECT * FROM projet
+  WHERE datefin &lt; CURDATE()
+    AND numproj NOT IN (SELECT numproj FROM projet_archive);</code></pre>
+  <p>Chaque nuit à 2h, les projets terminés sont copiés une seule fois (le <code>NOT IN</code> évite les doublons).</p>
+
+  <h3>Cas 2 : statistiques quotidiennes sur les logiciels</h3>
+  <p><b>Besoin :</b> garder chaque jour une trace du nombre de logiciels et de leur prix moyen.</p>
+<pre><code>CREATE TABLE stat_logiciels (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  date_stat DATE,
+  nb_logiciels INT,
+  prix_moyen DECIMAL(10,2)
+);
+
+CREATE EVENT ev_stat_logiciels
+ON SCHEDULE EVERY 1 DAY
+  STARTS CURRENT_DATE + INTERVAL 1 DAY
+DO
+  INSERT INTO stat_logiciels (date_stat, nb_logiciels, prix_moyen)
+  SELECT CURDATE(), COUNT(*), AVG(prixlog)
+  FROM logiciel;</code></pre>
+  <p>Chaque nuit à minuit, une nouvelle ligne est ajoutée : on obtient l'évolution des logiciels jour après jour.</p>
+
+  <h3>Cas 3 : rappel des projets qui se terminent bientôt</h3>
+  <p><b>Besoin :</b> chaque matin, préparer la liste des projets dont la date de fin tombe dans les 7 prochains jours.</p>
+  <p>Ici l'action contient <b>deux instructions</b> : on utilise <code>BEGIN ... END</code> avec <code>DELIMITER</code>.</p>
+<pre><code>CREATE TABLE rappel_echeances (
+  numproj INT,
+  titreproj VARCHAR(100),
+  datefin DATE
+);
+
+DELIMITER $$
+CREATE EVENT ev_rappel_echeances
+ON SCHEDULE EVERY 1 DAY
+  STARTS CURRENT_DATE + INTERVAL 1 DAY + INTERVAL 8 HOUR
+DO
+BEGIN
+  -- 1) vider l'ancienne liste
+  DELETE FROM rappel_echeances;
+  -- 2) la remplir avec les projets proches de leur fin
+  INSERT INTO rappel_echeances (numproj, titreproj, datefin)
+  SELECT numproj, titreproj, datefin
+  FROM projet
+  WHERE datefin BETWEEN CURDATE() AND CURDATE() + INTERVAL 7 DAY;
+END$$
+DELIMITER ;</code></pre>
+  <p>Chaque matin à 8h, il suffit de faire <code>SELECT * FROM rappel_echeances;</code> pour voir les projets urgents.</p>
+
+  <h3>Cas 4 : nettoyer automatiquement une table de journal</h3>
+  <p><b>Besoin :</b> supprimer chaque jour les lignes de la table <code>messages</code> (créée plus haut) qui ont plus de 7 jours, pour qu'elle ne grossisse pas indéfiniment.</p>
+<pre><code>CREATE EVENT ev_nettoyer_messages
+ON SCHEDULE EVERY 1 DAY
+  STARTS CURRENT_DATE + INTERVAL 1 DAY + INTERVAL 3 HOUR
+DO
+  DELETE FROM messages
+  WHERE created_at &lt; NOW() - INTERVAL 7 DAY;</code></pre>
+
+  <h3>Récapitulatif</h3>
+  <table>
+    <tr><th>Cas</th><th>Fréquence</th><th>Action</th></tr>
+    <tr><td>Archiver les projets terminés</td><td>Chaque nuit</td><td>INSERT ... SELECT</td></tr>
+    <tr><td>Statistiques des logiciels</td><td>Chaque nuit</td><td>INSERT ... SELECT avec COUNT et AVG</td></tr>
+    <tr><td>Rappel des échéances</td><td>Chaque matin</td><td>DELETE puis INSERT (BEGIN ... END)</td></tr>
+    <tr><td>Nettoyer le journal</td><td>Chaque nuit</td><td>DELETE avec condition de date</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2><span>8</span>Méthodologie simple</h2>
+  <ol>
+    <li>Vérifier que le planificateur est activé (<code>event_scheduler = ON</code>).</li>
+    <li>Écrire et <b>tester d'abord</b> l'instruction SQL seule.</li>
+    <li>Choisir la planification : une fois (<code>AT</code>) ou répétitive (<code>EVERY</code>).</li>
+    <li>Créer l'événement avec <code>CREATE EVENT</code>.</li>
+    <li>Vérifier avec <code>SHOW EVENTS</code> puis contrôler le résultat dans la table.</li>
+    <li>Désactiver ou supprimer l'événement quand il n'est plus utile.</li>
+  </ol>
+</section>
+
+<section>
+  <h2><span>9</span>Mini TP (base Glogiciels)</h2>
+  <p>Créer une table de suivi puis un événement qui y enregistre, toutes les minutes pendant 10 minutes, le nombre de projets :</p>
+<pre><code>CREATE TABLE suivi_projets (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nb_projets INT,
+  date_suivi DATETIME
+);</code></pre>
+  <ol>
+    <li>Créer l'événement <code>ev_suivi_projets</code> (toutes les minutes, pendant 10 minutes) qui insère <code>COUNT(*)</code> de la table <code>projet</code> dans <code>suivi_projets</code>.</li>
+    <li>Afficher le contenu de <code>suivi_projets</code> après quelques minutes.</li>
+    <li>Désactiver l'événement, puis le supprimer.</li>
+  </ol>
+</section>
+
+</main>
+
+<script>
+/* Coloration syntaxique MySQL simple */
+(function(){
+  var KW=("CREATE EVENT IF NOT EXISTS ON SCHEDULE AT EVERY STARTS ENDS DO ENABLE DISABLE ALTER DROP SHOW SET GLOBAL VARIABLES LIKE PROCESSLIST EVENTS INSERT INTO VALUES SELECT FROM TABLE PRIMARY KEY BEGIN END DELETE WHERE BETWEEN AND NOT IN DELIMITER TRUNCATE INTERVAL MINUTE HOUR DAY WEEK MONTH YEAR SECOND").split(" ");
+  var FN=["NOW","COUNT","AVG","CURDATE","CURRENT_DATE","CURRENT_TIMESTAMP"];
+  var TY=["INT","VARCHAR","DATETIME","DATE","DECIMAL","AUTO_INCREMENT"];
+  document.querySelectorAll("pre code").forEach(function(el){
+    if(el.querySelector("span")) return;
+    var t=el.textContent.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    t=t.replace(/(--[^\n]*)|('[^']*')|\b(\d+)\b|\b([A-Za-z_]+)\b/g,function(m,cm,s,n,w){
+      if(cm) return '<span class="c">'+cm+'</span>';
+      if(s) return '<span class="s">'+s+'</span>';
+      if(n) return '<span class="n">'+n+'</span>';
+      var u=w.toUpperCase();
+      if(FN.indexOf(u)>-1) return '<span class="f">'+w+'</span>';
+      if(KW.indexOf(u)>-1||TY.indexOf(u)>-1) return '<span class="k">'+w+'</span>';
+      return w;
+    });
+    el.innerHTML=t;
+  });
+})();
+</script>
+</body>
+</html>
