@@ -56,7 +56,10 @@ th{background:var(--accbg)}
 
 <h2>2. Syntaxe du handler</h2>
 <pre><code>DECLARE type_handler HANDLER FOR condition [, condition ...]
-    instruction;</code></pre>
+BEGIN
+    instruction(s);
+END;</code></pre>
+<div class="box"><p>MySQL accepte aussi une instruction seule, sans <code>BEGIN ... END</code>. Dans ce cours, on <b>écrit toujours le bloc</b> : si on ajoute une 2e instruction plus tard, le bloc est déjà prêt.</p></div>
 <p>Le <code>DECLARE ... HANDLER</code> se place au <b>début du bloc</b>, après les variables.</p>
 
 <h3>Les deux types de handler</h3>
@@ -74,7 +77,7 @@ th{background:var(--accbg)}
 <tr><td><code>SQLWARNING</code></td><td>Tous les avertissements (SQLSTATE commençant par 01).</td></tr>
 <tr><td><code>NOT FOUND</code></td><td>Aucune ligne trouvée (SQLSTATE commençant par 02) : <code>SELECT ... INTO</code> sans résultat, fin d'un curseur.</td></tr>
 <tr><td><code>SQLEXCEPTION</code></td><td>Toutes les autres erreurs (ni warning, ni not found).</td></tr>
-<tr><td>un nom de condition</td><td>Une erreur à laquelle on a donné un nom (voir section 6).</td></tr>
+<tr><td>un nom de condition</td><td>Une erreur à laquelle on a donné un nom (voir section 7).</td></tr>
 </table></div>
 <div class="box warn"><p><b>Attention :</b> dans certains supports, le code <code>1040</code> est cité pour « NULL interdit ». Le bon code est <code>1048</code> (le 1040 correspond à « trop de connexions »).</p></div>
 
@@ -121,7 +124,9 @@ CREATE PROCEDURE ps_chercher_developpeur(IN p_num INT)
 BEGIN
     DECLARE v_nom VARCHAR(50);
     DECLARE EXIT HANDLER FOR NOT FOUND
+    BEGIN
         SELECT CONCAT('Aucun développeur avec le numéro ', p_num) AS message;
+    END;
 
     SELECT nomdev INTO v_nom FROM developpeur WHERE numdev = p_num;
 
@@ -137,7 +142,9 @@ CALL ps_chercher_developpeur(999);</code></pre>
 CREATE PROCEDURE ps_test_erreur()
 BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
         SELECT 'Une erreur est survenue' AS message;
+    END;
 
     INSERT INTO table_inexistante VALUES (1);
     SET @x = 99;
@@ -147,7 +154,7 @@ DELIMITER ;
 CALL ps_test_erreur();
 SELECT @x;</code></pre>
 <p>Le handler s'est déclenché et la procédure s'est arrêtée : <code>@x</code> n'a pas été modifiée (<code>NULL</code>).</p>
-<div class="box"><p>MySQL ne permet pas toujours de récupérer le code et le message exacts de l'erreur dans un handler <code>SQLEXCEPTION</code>. Si on en a besoin, on utilise <code>GET DIAGNOSTICS</code>, ou on prévoit un handler par erreur connue.</p></div>
+<div class="box"><p>Pour connaître le <b>code</b> et le <b>message</b> exacts de l'erreur dans un handler, on utilise <code>GET DIAGNOSTICS</code> (voir section 6).</p></div>
 
 <h2>4. Handler CONTINUE</h2>
 <p>Avec <code>CONTINUE</code>, la procédure <b>ne s'arrête pas</b> : après le handler, elle reprend à l'instruction suivante.</p>
@@ -155,7 +162,9 @@ SELECT @x;</code></pre>
 CREATE PROCEDURE ps_doublon_continue()
 BEGIN
     DECLARE CONTINUE HANDLER FOR SQLSTATE '23000'
+    BEGIN
         SET @erreur = 1;
+    END;
 
     SET @erreur = 0;
     SET @etape = 1;
@@ -177,7 +186,10 @@ SELECT @etape, @erreur;</code></pre>
 CREATE PROCEDURE ps_ajouter_dev_flag(IN p_num INT, IN p_nom VARCHAR(50))
 BEGIN
     DECLARE doublon BOOLEAN DEFAULT FALSE;
-    DECLARE CONTINUE HANDLER FOR 1062 SET doublon = TRUE;
+    DECLARE CONTINUE HANDLER FOR 1062
+    BEGIN
+        SET doublon = TRUE;
+    END;
 
     INSERT INTO developpeur (numdev, nomdev) VALUES (p_num, p_nom);
 
@@ -189,7 +201,67 @@ BEGIN
 END //
 DELIMITER ;</code></pre>
 
-<h2>6. Donner un nom à une erreur (DECLARE CONDITION)</h2>
+<h2>6. Récupérer l'erreur : GET DIAGNOSTICS</h2>
+<p>Dans un handler <code>SQLEXCEPTION</code>, on sait qu'une erreur s'est produite, mais pas laquelle. <code>GET DIAGNOSTICS</code> permet de <b>lire les détails de l'erreur</b> (code, SQLSTATE, message) et de les ranger dans des variables.</p>
+<h3>Comparaison avec try / catch en Java</h3>
+<p>L'idée est proche, mais <code>GET DIAGNOSTICS</code> n'est pas le <code>try/catch</code> lui-même : c'est l'équivalent de la lecture de l'objet exception (<code>e.getMessage()</code>...). Le <code>catch</code>, c'est le <b>handler</b>.</p>
+<div class="wrap"><table>
+<tr><th>Java</th><th>MySQL</th></tr>
+<tr><td><code>try { ... }</code></td><td>le bloc <code>BEGIN ... END</code> qui contient le code à risque</td></tr>
+<tr><td><code>catch (SQLException e)</code></td><td><code>DECLARE EXIT HANDLER FOR SQLEXCEPTION</code></td></tr>
+<tr><td><code>e.getErrorCode()</code></td><td><code>MYSQL_ERRNO</code></td></tr>
+<tr><td><code>e.getSQLState()</code></td><td><code>RETURNED_SQLSTATE</code></td></tr>
+<tr><td><code>e.getMessage()</code></td><td><code>MESSAGE_TEXT</code></td></tr>
+<tr><td><code>throw new SQLException(...)</code></td><td><code>SIGNAL</code></td></tr>
+<tr><td><code>throw e</code></td><td><code>RESIGNAL</code></td></tr>
+</table></div>
+<pre><code class="nohl">try {
+    stmt.executeUpdate("INSERT INTO developpeur ...");
+} catch (SQLException e) {
+    System.out.println(e.getErrorCode());   // 1062
+    System.out.println(e.getSQLState());    // 23000
+    System.out.println(e.getMessage());     // Duplicate entry ...
+}</code></pre>
+<div class="box warn"><p><b>Deux différences importantes :</b></p>
+<p>1) En MySQL, le handler est <b>déclaré avant</b> le code à surveiller, et non autour de lui.</p>
+<p>2) <code>CONTINUE</code> n'existe pas en Java : après le <code>catch</code>, on reprend à l'instruction suivante. <code>EXIT</code> est le plus proche du <code>catch</code> Java.</p></div>
+<h3>Syntaxe</h3>
+<pre><code>GET DIAGNOSTICS CONDITION 1
+    variable1 = MYSQL_ERRNO,
+    variable2 = RETURNED_SQLSTATE,
+    variable3 = MESSAGE_TEXT;</code></pre>
+<ul>
+<li><code>CONDITION 1</code> désigne la première (et en général la seule) erreur.</li>
+<li>Les variables doivent être <b>déclarées avant</b> avec <code>DECLARE</code>.</li>
+<li>On l'utilise <b>dans le handler</b>, avant que l'erreur ne soit remplacée par une autre instruction.</li>
+</ul>
+<h3>Exemple : afficher le code et le message de n'importe quelle erreur</h3>
+<pre><code>DELIMITER //
+CREATE PROCEDURE ps_ajouter_dev_diag(IN p_num INT, IN p_nom VARCHAR(50))
+BEGIN
+    DECLARE v_code INT;
+    DECLARE v_etat CHAR(5);
+    DECLARE v_msg TEXT;
+
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1
+            v_code = MYSQL_ERRNO,
+            v_etat = RETURNED_SQLSTATE,
+            v_msg  = MESSAGE_TEXT;
+        SELECT v_code AS code, v_etat AS sqlstate, v_msg AS message;
+    END;
+
+    INSERT INTO developpeur (numdev, nomdev) VALUES (p_num, p_nom);
+    SELECT 'Développeur ajouté' AS message;
+END //
+DELIMITER ;
+
+CALL ps_ajouter_dev_diag(1, 'Test');</code></pre>
+<p>Si le numéro 1 existe déjà, on obtient : code <code>1062</code>, SQLSTATE <code>23000</code> et le message « Duplicate entry '1' for key ... ».</p>
+<div class="box ok"><p><b>Astuce :</b> un seul handler <code>SQLEXCEPTION</code> avec <code>GET DIAGNOSTICS</code> remplace plusieurs handlers quand on veut seulement <b>afficher ou enregistrer</b> l'erreur (par exemple dans une table de journal).</p></div>
+
+<h2>7. Donner un nom à une erreur (DECLARE CONDITION)</h2>
 <p>Pour rendre le code plus lisible, on peut nommer une erreur, puis utiliser ce nom dans le handler.</p>
 <pre><code>DECLARE nom_condition CONDITION FOR
     { SQLSTATE 'valeur' | code_erreur_mysql };</code></pre>
@@ -198,17 +270,18 @@ CREATE PROCEDURE ps_ajouter_projet(IN p_num INT, IN p_titre VARCHAR(100))
 BEGIN
     DECLARE projet_existe CONDITION FOR 1062;
     DECLARE EXIT HANDLER FOR projet_existe
+    BEGIN
         SELECT 'Ce numéro de projet existe déjà' AS message;
+    END;
 
     INSERT INTO projet (numproj, titreproj) VALUES (p_num, p_titre);
     SELECT 'Projet ajouté' AS message;
 END //
 DELIMITER ;</code></pre>
 
-<h2>7. Déclencher sa propre erreur : SIGNAL</h2>
+<h2>8. Déclencher sa propre erreur : SIGNAL</h2>
 <p>Parfois, ce n'est pas MySQL qui détecte l'erreur, mais <b>notre règle métier</b> (ex. un projet doit exister). Avec <code>SIGNAL</code>, on <b>lève</b> nous-mêmes une exception avec un message personnalisé.</p>
-<pre><code>SIGNAL SQLSTATE 'valeur'
-    SET MESSAGE_TEXT = 'votre message';</code></pre>
+<pre><code>SIGNAL SQLSTATE 'valeur' SET MESSAGE_TEXT = 'votre message';</code></pre>
 <div class="box"><p>Pour les erreurs personnalisées, on utilise la valeur <code>'45000'</code> (« exception définie par l'utilisateur »).</p></div>
 <h3>Exemple : affecter un développeur à un projet</h3>
 <pre><code>DELIMITER //
@@ -218,14 +291,12 @@ BEGIN
 
     SELECT COUNT(*) INTO v_nb FROM projet WHERE numproj = p_numproj;
     IF v_nb = 0 THEN
-        SIGNAL SQLSTATE '45000'
-            SET MESSAGE_TEXT = 'Projet introuvable';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Projet introuvable';
     END IF;
 
     SELECT COUNT(*) INTO v_nb FROM developpeur WHERE numdev = p_numdev;
     IF v_nb = 0 THEN
-        SIGNAL SQLSTATE '45000'
-            SET MESSAGE_TEXT = 'Développeur introuvable';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Développeur introuvable';
     END IF;
 
     INSERT INTO realisation (numproj, numdev) VALUES (p_numproj, p_numdev);
@@ -235,7 +306,7 @@ DELIMITER ;
 CALL ps_affecter_developpeur(1, 9999);</code></pre>
 <p>Résultat : <code>ERROR 1644 (45000): Développeur introuvable</code>. La procédure s'arrête et l'appelant reçoit notre message.</p>
 
-<h2>8. Relancer une erreur : RESIGNAL</h2>
+<h2>9. Relancer une erreur : RESIGNAL</h2>
 <p><code>RESIGNAL</code> fonctionne comme <code>SIGNAL</code>, mais s'utilise <b>uniquement dans un handler</b> : on intercepte une erreur, puis on la <b>relance</b> (souvent avec un message plus clair).</p>
 <pre><code>DELIMITER //
 CREATE PROCEDURE ps_diviser(
@@ -243,7 +314,9 @@ CREATE PROCEDURE ps_diviser(
 BEGIN
     DECLARE division_par_zero CONDITION FOR SQLSTATE '22012';
     DECLARE CONTINUE HANDLER FOR division_par_zero
+    BEGIN
         RESIGNAL SET MESSAGE_TEXT = 'Division par zéro : le dénominateur doit être différent de 0';
+    END;
 
     IF p_b = 0 THEN
         SIGNAL division_par_zero;
@@ -260,7 +333,7 @@ CALL ps_diviser(10, 0, @r);</code></pre>
 <tr><td><code>RESIGNAL</code></td><td>Uniquement dans un handler (sinon erreur « RESIGNAL when handler not active »).</td></tr>
 </table></div>
 
-<h2>9. Méthodologie</h2>
+<h2>10. Méthodologie</h2>
 <ol>
 <li>Repérer l'instruction qui peut échouer (<code>INSERT</code>, <code>SELECT INTO</code>, appel d'une autre procédure...).</li>
 <li>Identifier l'erreur possible (code MySQL, <code>SQLSTATE</code>, <code>NOT FOUND</code>, <code>SQLEXCEPTION</code>).</li>
@@ -269,7 +342,7 @@ CALL ps_diviser(10, 0, @r);</code></pre>
 <li>Pour une règle métier non vérifiée par MySQL : tester avec <code>IF</code> puis <code>SIGNAL</code>.</li>
 </ol>
 
-<h2>10. TP sur la base Glogiciels</h2>
+<h2>11. TP sur la base Glogiciels</h2>
 <ol class="tp">
 <li>Écrire <code>ps_ajouter_logiciel(p_cod, p_nom, p_prix, p_numproj)</code> avec un handler <code>EXIT</code> sur le doublon de clé (1062) qui affiche « Ce logiciel existe déjà ».</li>
 <li>Dans la même procédure, ajouter un handler <code>EXIT</code> sur l'erreur de clé étrangère (1452) qui affiche « Projet inexistant ».</li>
@@ -285,7 +358,7 @@ var KW=/^(DELIMITER|CREATE|PROCEDURE|BEGIN|END|DECLARE|HANDLER|FOR|EXIT|CONTINUE
 var TY=/^(INT|VARCHAR|BOOLEAN|DOUBLE)$/;
 var RE=/('[^']*')|(--[^\n]*)|([A-Za-z_][A-Za-z_0-9]*)|(\d+)|([\s\S])/g;
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-document.querySelectorAll('pre code').forEach(function(el){
+document.querySelectorAll('pre code:not(.nohl)').forEach(function(el){
   var src=el.textContent,out='',m;
   RE.lastIndex=0;
   while((m=RE.exec(src))!==null){
