@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Table pédagogique des sélecteurs CSS</title>
+  <style>
+    body {
+      font-family: Arial;
+      padding: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 40px;
+    }
+
+    th,
+    td {
+      border: 1px solid #ccc;
+      padding: 12px;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f0f0f0;
+    }
+
+    .ex {
+      border: 1px solid #aaa;
+      padding: 10px;
+      border-radius: 6px;
+      background: #fafafa;
+      font-size: 14px;
+    }
+
+    .ex.elements p {
+      color: green;
+    }
+
+    /* Démo couleurs (CONSERVÉS) */
+    .ex-descendant p {
+      color: blue;
+      font-weight: bold;
+    }
+
+    .ex-direct div>p {
+      color: red;
+      font-weight: bold;
+    }
+
+    .ex-adjacent h2+p {
+      background: yellow;
+    }
+
+    .ex-general h3~p {
+      background: lightgreen;
+    }
+
+    .ex-class .info {
+      color: purple;
+      font-weight: bold;
+    }
+
+    #special {
+      background: orange;
+      font-weight: bold;
+    }
+
+    .ex-attr input[type="text"] {
+      border: 2px solid blue;
+    }
+
+    .ex-hover a:hover {
+      background: yellow;
+    }
+
+    .ex-active a:active {
+      background: lightcoral;
+    }
+
+    .ex-focus input:focus {
+      outline: none;
+      border: 2px solid blue;
+    }
+
+    .ex-visited a:visited {
+      color: orange;
+    }
+
+    .ex-empty p:empty {
+      background: pink;
+      min-height: 4px;
+    }
+
+    .ex-first-child p:first-child {
+      background: lightblue;
+    }
+
+    .ex-last-child p:last-child {
+      background: lightcyan;
+    }
+
+    .ex-first-letter p::first-letter {
+      font-size: 1.5em;
+      color: red;
+      font-weight: bold;
+    }
+
+    .ex-first-line p::first-line {
+      text-transform: uppercase;
+      color: green;
+    }
+
+    .ex-before p::before {
+      content: "Note: ";
+      color: red;
+    }
+
+    .ex-after label::after {
+      content: " *";
+      color: red;
+      font-weight: bold;
+    }
+
+    input:invalid {
+      border: 2px solid red;
+    }
+
+    .no-effect {
+      color: gray !important;
+      background: none !important;
+      font-style: italic !important;
+      border: none !important;
+    }
+
+    label.required::after {
+      content: " *";
+      color: red;
+      font-weight: bold;
+    }
+
+    #cb1:checked+label {
+      color: green;
+      font-weight: bold;
+    }
+
+    input:disabled {
+      background: #f0f0f0;
+      cursor: not-allowed;
+    }
+
+    .ex-enabled input:enabled {
+      border: 2px solid green;
+    }
+
+    .ex-required input:required {
+      border-left: 3px solid red;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Table pédagogique des sélecteurs CSS</h1>
+
+  <table>
+    <tr>
+      <th>Sélecteur</th>
+      <th>HTML</th>
+      <th>CSS</th>
+      <th>Résultat</th>
+    </tr>
+
+    <tr>
+      <th colspan="4" style="background:#d0d0ff; text-align: center;">Sélecteurs
+        simples & Basiques</th>
+    </tr>
+
+    <tr>
+      <td><strong>Élément</strong><br><code>p</code></td>
+      <td>
+        <pre>
+&lt;p>Impacté 1&lt;/p>
+&lt;p>Impacté 2&lt;/p>
+&lt;div>
+  &lt;p>Impacté 3&lt;/p>
+&lt;/div>
+&lt;span>Non impacté&lt;/span>
+        </pre>
+      </td>
+      <td>
+        <pre>p {
+  color: green;
+}</pre>
+      </td>
+      <td class="ex elements">
+        <p>Impacté 1</p>
+        <p>Impacté 2</p>
+        <div>
+          <p>Impacté 3</p>
+        </div>
+        <span>Non impacté</span>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>Classe</strong><br><code>.info</code></td>
+      <td>
+        <pre>&lt;p class="info"&gt;Important 1&lt;/p&gt;
+&lt;p class="info"&gt;Important 2&lt;/p&gt;
+&lt;p&gt;Normal&lt;/p&gt;</pre>
+      </td>
+      <td>
+        <pre>.info {
+  color: purple;
+  font-weight: bold;
+}</pre>
+      </td>
+      <td class="ex ex-class">
+        <p class="info">Important 1</p>
+        <p class="info">Important 2</p>
+        <p class="no-effect">Normal</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>ID</strong><br><code>#special</code></td>
+      <td>
+        <pre>&lt;p id="special"&gt;Élément unique&lt;/p&gt;
+&lt;p&gt;Non sélectionné&lt;/p&gt;</pre>
+      </td>
+      <td>
+        <pre>#special {
+  background: orange;
+  font-weight: bold;
+}</pre>
+      </td>
+      <td class="ex">
+        <p id="special">Élément unique</p>
+        <p class="no-effect">Non sélectionné</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>Sélecteur multiple</strong><br><code>h1, h2, p</code></td>
+      <td>
+        <pre>&lt;h1&gt;Titre 1&lt;/h1&gt;
+&lt;h2&gt;Titre 2&lt;/h2&gt;
+&lt;p&gt;Paragraphe&lt;/p&gt;
+&lt;span&gt;Span&lt;/span&gt;</pre>
+      </td>
+      <td>
+        <pre>h1, h2, p {
+  color: blue;
+  border-left: 3px solid blue;
+  padding-left: 10px;
+}</pre>
+      </td>
+      <td class="ex">
+        <h1
+            style="color: blue; border-left: 3px solid blue; padding-left: 10px; margin: 5px 0;">
+          Titre 1</h1>
+        <h2
+            style="color: blue; border-left: 3px solid blue; padding-left: 10px; margin: 5px 0;">
+          Titre 2</h2>
+        <p
+           style="color: blue; border-left: 3px solid blue; padding-left: 10px; margin: 5px 0;">
+          Paragraphe</p>
+        <span>Span</span>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>Plusieurs classes</strong><br><code>.class1.class2</code></td>
+      <td>
+        <pre>&lt;p class="info"&gt;Info seule&lt;/p&gt;
+&lt;p class="important"&gt;Important seul&lt;/p&gt;
+&lt;p class="info important"&gt;Les deux&lt;/p&gt;</pre>
+      </td>
+      <td>
+        <pre>.info.important {
+  background: orange;
+  color: white;
+  font-weight: bold;
+}</pre>
+      </td>
+      <td class="ex">
+        <p>Info seule</p>
+        <p>Important seul</p>
+        <p
+           style="background: orange; color: white; font-weight: bold; padding: 5px;">
+          Les deux</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>Élément avec classe</strong><br><code>p.warning</code></td>
+      <td>
+        <pre>&lt;p class="warning"&gt;Attention p&lt;/p&gt;
+&lt;div class="warning"&gt;Attention div&lt;/div&gt;
+&lt;p&gt;Normal&lt;/p&gt;</pre>
+      </td>
+      <td>
+        <pre>p.warning {
+  background: #fff3cd;
+  border: 2px solid orange;
+  padding: 10px;
+}</pre>
+      </td>
+      <td class="ex">
+        <p
+           style="background: #fff3cd; border: 2px solid orange; padding: 10px;">
+          Attention p</p>
+        <div class="warning">Attention div</div>
+        <p>Normal</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>Universel</strong><br><code>*</code></td>
+      <td>
+        <pre>&lt;p&gt;Paragraphe&lt;/p&gt;
+&lt;span&gt;Span&lt;/span&gt;
+&lt;div&gt;Div&lt;/div&gt;</pre>
+      </td>
+      <td>
+        <pre>* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}</pre>
+      </td>
+      <td class="ex">
+        <p style="margin: 0; padding: 0;">Tous les éléments sont impactés
+          (margin, padding réinitialisés)</p>
+      </td>
+    </tr>
+
+    <tr>
+      <th colspan="4" style="background:#d0ffd0; text-align: center;">Sélecteurs
+        complexes & Combinateurs</th>
+    </tr>
+
+    <tr>
+      <td><strong>Descendant</strong><br><code>div p</code></td>
+      <td>
+        <pre>&lt;p&gt;Non impacté&lt;/p&gt;
+&lt;div&gt;
+  &lt;p&gt;Impacté 1&lt;/p&gt;
+  &lt;header&gt;
+    &lt;p&gt;Impacté 2&lt;/p&gt;
+  &lt;/header&gt;
+&lt;/div&gt;</pre>
+      </td>
+      <td>
+        <pre>div p {
+  color: blue;
+  font-weight: bold;
+}</pre>
+      </td>
+      <td class="ex ex-descendant">
+        <p class="no-effect">Non impacté</p>
+        <div>
+          <p style="color:blue">Impacté 1</p>
+          <header>
+            <p style="color:blue">Impacté 2</p>
+          </header>
+        </div>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>Enfant direct</strong><br><code>div > p</code></td>
+      <td>
+        <pre>&lt;div>
+  &lt;p>OUI&lt;/p>
+&lt;/div>
+
+&lt;div>
+  &lt;header>
+    &lt;p>NON&lt;/p>
+    &lt;div>
+      &lt;p>child parag&lt;/p>
+    &lt;/div>
+  &lt;/header>
+  &lt;p>another parag&lt;/p>
+  &lt;p>last parag&lt;/p>
+&lt;/div></pre>
+      </td>
+      <td>
+        <pre>div > p {
+  color: red;
+}</pre>
+      </td>
+      <td class="ex ex-direct">
+        <div>
+          <p>OUI</p>
+        </div>
+
+        <div>
+          <header>
+            <p>NON</p>
+            <div>
+              <p>child parag</p>
+            </div>
+          </header>
+          <p>another parag</p>
+          <p>last parag</p>
+        </div>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>Frère adjacent</strong><br><code>h2 + p</code></td>
+      <td>
+        <pre>&lt;h2&gt;Titre&lt;/h2&gt;
+&lt;span>lorem span&lt;/span>
+&lt;p>parag&lt;/p>
+&lt;h2&gt;autre h2&lt;/h2&gt;
+&lt;p&gt;lorem impacté&lt;/p&gt;</pre>
+      </td>
+      <td>
+        <pre>h2 + p {
+  background: yellow;
+}</pre>
+      </td>
+      <td class="ex ex-adjacent">
+        <h2>Titre</h2>
+        <span>lorem span</span>
+        <p>parag</p>
+        <h2>autre h2</h2>
+        <p>lorem impacté</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>Frères généraux</strong><br><code>h3 ~ p</code></td>
+      <td>
+        <pre>&lt;h3&gt;Sous-titre&lt;/h3&gt;
+&lt;p&gt;Impacté 1&lt;/p&gt;
+&lt;div&gt;
+  &lt;p&gt;Non impacté&lt;/p&gt;
+&lt;/div&gt;
+&lt;p&gt;Impacté 2&lt;/p&gt;</pre>
+      </td>
+      <td>
+        <pre>h3 ~ p {
+  background: lightgreen;
+}</pre>
+      </td>
+      <td class="ex ex-general">
+        <h3>Sous-titre</h3>
+        <p>Impacté 1</p>
+        <div>
+          <p>Non impacté</p>
+        </div>
+        <p>Impacté 2</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>Universel ciblé</strong><br><code>div *</code></td>
+      <td>
+        <pre>&lt;div&gt;
+  &lt;p&gt;Paragraphe&lt;/p&gt;
+  &lt;span&gt;Span&lt;/span&gt;
+&lt;/div&gt;
+&lt;p&gt;Hors div&lt;/p&gt;</pre>
+      </td>
+      <td>
+        <pre>div * {
+  color: purple;
+  font-style: italic;
+}</pre>
+      </td>
+      <td class="ex">
+        <div style="border: 1px solid #ccc; padding: 10px;">
+          <p style="color: purple; font-style: italic;">Paragraphe</p>
+          <span style="color: purple; font-style: italic;">Span</span>
+        </div>
+        <p>Hors div</p>
+      </td>
+    </tr>
+
+
+    <tr>
+      <th colspan="4" style="background:#d0e0ff; text-align: center;">Sélecteurs
+        d'attributs</th>
+    </tr>
+
+    <tr>
+      <td><strong>Sélecteur
+                    d'attribut</strong><br><code>input[type="text"]</code></td>
+      <td>
+        <pre>&lt;input type="number"&gt;
+&lt;input type="text"&gt;
+&lt;input type="password"&gt;</pre>
+      </td>
+      <td>
+        <pre>input[type="text"] {
+  border: 2px solid blue;
+}</pre>
+      </td>
+      <td class="ex ex-attr">
+        <input type="number" class="no-effect" placeholder="Non">
+        <input type="text" placeholder="Impacté">
+        <input type="password" class="no-effect" placeholder="Non">
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>[attr^="value"]</strong><br>Commence par</td>
+      <td>
+        <pre>&lt;a href="https://google.com"&gt;Google&lt;/a&gt;
+&lt;a href="http://example.com"&gt;Example&lt;/a&gt;
+&lt;a href="/page"&gt;Interne&lt;/a&gt;</pre>
+      </td>
+      <td>
+        <pre>a[href^="https"] {
+  color: green;
+  font-weight: bold;
+}</pre>
+      </td>
+      <td class="ex" style="font-size: 14px;">
+        <a href="https://google.com"
+           style="color: green; font-weight: bold;">Google</a><br>
+        <a href="http://example.com">Example</a><br>
+        <a href="/page">Interne</a>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>[attr$="value"]</strong><br>Se termine par</td>
+      <td>
+        <pre>&lt;a href="doc.pdf"&gt;PDF&lt;/a&gt;
+&lt;a href="image.jpg"&gt;Image&lt;/a&gt;
+&lt;a href="page.html"&gt;Page&lt;/a&gt;</pre>
+      </td>
+      <td>
+        <pre>a[href$=".pdf"] {
+  color: red;
+  text-decoration: underline;
+}</pre>
+      </td>
+      <td class="ex" style="font-size: 14px;">
+        <a href="doc.pdf"
+           style="color: red; text-decoration: underline;">PDF</a><br>
+        <a href="image.jpg">Image</a><br>
+        <a href="page.html">Page</a>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>[attr*="value"]</strong><br>Contient</td>
+      <td>
+        <pre>&lt;p class="box-red"&gt;Rouge&lt;/p&gt;
+&lt;p class="box-blue"&gt;Bleu&lt;/p&gt;
+&lt;p class="container"&gt;Normal&lt;/p&gt;</pre>
+      </td>
+      <td>
+        <pre>[class*="box"] {
+  border: 2px solid black;
+  padding: 5px;
+}</pre>
+      </td>
+      <td class="ex">
+        <p style="border: 2px solid black; padding: 5px;">Rouge</p>
+        <p style="border: 2px solid black; padding: 5px;">Bleu</p>
+        <p>Normal</p>
+      </td>
+    </tr>
+
+
+    <tr>
+      <th colspan="4" style="background:#ffe0d0; text-align: center;">
+        Pseudo-classes (Interaction & Formulaires)</th>
+    </tr>
+
+    <tr>
+      <td><strong>a:hover</strong></td>
+      <td>
+        <pre>&lt;a href="#"&gt;Lien&lt;/a&gt;</pre>
+      </td>
+      <td>
+        <pre>a:hover {
+  background: yellow;
+}</pre>
+      </td>
+      <td class="ex ex-hover">
+        <a href="#">Passe la souris ici</a>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>a:active</strong></td>
+      <td>
+        <pre>&lt;a href="#"&gt;Lien&lt;/a&gt;</pre>
+      </td>
+      <td>
+        <pre>a:active {
+  background: lightcoral;
+}</pre>
+      </td>
+      <td class="ex ex-active">
+        <a href="#">Cliquez ici</a>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>a:visited</strong></td>
+      <td>
+        <pre>&lt;a href="https://example.com"&gt;Lien&lt;/a&gt;</pre>
+      </td>
+      <td>
+        <pre>a:visited {
+  color: orange;
+}</pre>
+      </td>
+      <td class="ex ex-visited">
+        <a href="https://example.com">Visité</a>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>input:focus</strong></td>
+      <td>
+        <pre>&lt;input type="text"&gt;</pre>
+      </td>
+      <td>
+        <pre>input:focus {
+  outline: none;
+  border: 2px solid blue;
+}</pre>
+      </td>
+      <td class="ex ex-focus">
+        <input type="text" placeholder="Cliquez ici">
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>input:invalid</strong></td>
+      <td>
+        <pre>&lt;input type="text" pattern="[a-z]{5}"&gt;</pre>
+      </td>
+      <td>
+        <pre>input:invalid {
+  border: 2px solid red;
+}</pre>
+      </td>
+      <td class="ex">
+        <input type="text" pattern="[a-z]{5}" placeholder="Tape 5 lettres">
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>:checked</strong></td>
+      <td>
+        <pre>&lt;input type="checkbox" id="cb"&gt;
+&lt;label for="cb"&gt;Option&lt;/label&gt;</pre>
+      </td>
+      <td>
+        <pre>input:checked + label {
+  color: green;
+  font-weight: bold;
+}</pre>
+      </td>
+      <td class="ex">
+        <style>
+          #cb1:checked+label {
+            color: green;
+            font-weight: bold;
+          }
+        </style>
+        <input type="checkbox" id="cb1">
+        <label for="cb1">Cochez-moi</label>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>:disabled</strong></td>
+      <td>
+        <pre>&lt;input type="text" disabled&gt;
+&lt;input type="text"&gt;</pre>
+      </td>
+      <td>
+        <pre>input:disabled {
+  background: #f0f0f0;
+  cursor: not-allowed;
+}</pre>
+      </td>
+      <td class="ex">
+        <style>
+          input:disabled {
+            background: #f0f0f0;
+            cursor: not-allowed;
+          }
+        </style>
+        <input type="text" disabled placeholder="Désactivé"><br><br>
+        <input type="text" placeholder="Actif">
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>:enabled</strong></td>
+      <td>
+        <pre>&lt;input type="text" disabled&gt;
+&lt;input type="text"&gt;</pre>
+      </td>
+      <td>
+        <pre>input:enabled {
+  border: 2px solid green;
+}</pre>
+      </td>
+      <td class="ex">
+        <style>
+          .ex-enabled input:enabled {
+            border: 2px solid green;
+          }
+        </style>
+        <div class="ex-enabled">
+          <input type="text" disabled placeholder="Désactivé"><br><br>
+          <input type="text" placeholder="Actif">
+        </div>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>:required</strong></td>
+      <td>
+        <pre>&lt;input type="text" required&gt;
+&lt;input type="text"&gt;</pre>
+      </td>
+      <td>
+        <pre>input:required {
+  border-left: 3px solid red;
+}</pre>
+      </td>
+      <td class="ex">
+        <style>
+          .ex-required input:required {
+            border-left: 3px solid red;
+          }
+        </style>
+        <div class="ex-required">
+          <input type="text" required placeholder="Requis"><br><br>
+          <input type="text" placeholder="Optionnel">
+        </div>
+      </td>
+    </tr>
+
+
+    <tr>
+      <th colspan="4" style="background:#ffe0ff; text-align: center;">
+        Pseudo-classes structurelles</th>
+    </tr>
+
+    <tr>
+      <td><strong>p:empty</strong></td>
+      <td>
+        <pre>&lt;p&gt;&lt;/p&gt;</pre>
+      </td>
+      <td>
+        <pre>p:empty {
+  background: pink;
+  min-height: 4px;
+}</pre>
+      </td>
+      <td class="ex ex-empty">
+        <p></p>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>p:first-child</strong></td>
+      <td>
+        <pre>&lt;div&gt;
+  &lt;p&gt;Premier&lt;/p&gt;
+  &lt;p&gt;Second&lt;/p&gt;
+&lt;/div&gt;</pre>
+      </td>
+      <td>
+        <pre>p:first-child {
+  background: lightblue;
+}</pre>
+      </td>
+      <td class="ex ex-first-child">
+        <div>
+          <p style="background:lightblue">Premier</p>
+          <p>Second</p>
+        </div>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>p:last-child</strong></td>
+      <td>
+        <pre>&lt;div&gt;
+  &lt;p&gt;Premier&lt;/p&gt;
+  &lt;p&gt;Dernier&lt;/p&gt;
+&lt;/div&gt;</pre>
+      </td>
+      <td>
+        <pre>p:last-child {
+  background: lightcyan;
+}</pre>
+      </td>
+      <td class="ex ex-last-child">
+        <div>
+          <p>Premier</p>
+          <p style="background:lightcyan">Dernier</p>
+        </div>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>:nth-child(n)</strong><br>Nième enfant</td>
+      <td>
+        <pre>&lt;ul&gt;
+  &lt;li&gt;Item 1&lt;/li&gt;
+  &lt;li&gt;Item 2&lt;/li&gt;
+  &lt;li&gt;Item 3&lt;/li&gt;
+  &lt;li&gt;Item 4&lt;/li&gt;
+&lt;/ul&gt;</pre>
+      </td>
+      <td>
+        <pre>li:nth-child(2) {
+  background: lightblue;
+  font-weight: bold;
+}</pre>
+      </td>
+      <td class="ex">
+        <ul>
+          <li>Item 1</li>
+          <li style="background: lightblue; font-weight: bold;">Item 2</li>
+          <li>Item 3</li>
+          <li>Item 4</li>
+        </ul>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>:nth-child(odd)</strong><br>Enfants impairs</td>
+      <td>
+        <pre>&lt;ul&gt;
+  &lt;li&gt;Ligne 1&lt;/li&gt;
+  &lt;li&gt;Ligne 2&lt;/li&gt;
+  &lt;li&gt;Ligne 3&lt;/li&gt;
+  &lt;li&gt;Ligne 4&lt;/li&gt;
+&lt;/ul&gt;</pre>
+      </td>
+      <td>
+        <pre>li:nth-child(odd) {
+  background: #f0f0f0;
+}</pre>
+      </td>
+      <td class="ex">
+        <ul>
+          <li style="background: #f0f0f0;">Ligne 1</li>
+          <li>Ligne 2</li>
+          <li style="background: #f0f0f0;">Ligne 3</li>
+          <li>Ligne 4</li>
+        </ul>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>:nth-child(even)</strong><br>Enfants pairs</td>
+      <td>
+        <pre>&lt;ul&gt;
+  &lt;li&gt;Ligne 1&lt;/li&gt;
+  &lt;li&gt;Ligne 2&lt;/li&gt;
+  &lt;li&gt;Ligne 3&lt;/li&gt;
+  &lt;li&gt;Ligne 4&lt;/li&gt;
+&lt;/ul&gt;</pre>
+      </td>
+      <td>
+        <pre>li:nth-child(even) {
+  background: lightgreen;
+}</pre>
+      </td>
+      <td class="ex">
+        <ul>
+          <li>Ligne 1</li>
+          <li style="background: lightgreen;">Ligne 2</li>
+          <li>Ligne 3</li>
+          <li style="background: lightgreen;">Ligne 4</li>
+        </ul>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>:nth-of-type(n)</strong><br>Nième du type</td>
+      <td>
+        <pre>&lt;div&gt;
+  &lt;p&gt;Paragraphe 1&lt;/p&gt;
+  &lt;span&gt;Span&lt;/span&gt;
+  &lt;p&gt;Paragraphe 2&lt;/p&gt;
+  &lt;p&gt;Paragraphe 3&lt;/p&gt;
+&lt;/div&gt;</pre>
+      </td>
+      <td>
+        <pre>p:nth-of-type(2) {
+  background: yellow;
+  font-weight: bold;
+}</pre>
+      </td>
+      <td class="ex">
+        <div>
+          <p>Paragraphe 1</p>
+          <span>Span</span>
+          <p style="background: yellow; font-weight: bold;">Paragraphe 2</p>
+          <p>Paragraphe 3</p>
+        </div>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>:only-child</strong><br>Enfant unique</td>
+      <td>
+        <pre>&lt;div&gt;
+  &lt;p&gt;Seul enfant&lt;/p&gt;
+&lt;/div&gt;
+&lt;div&gt;
+  &lt;p&gt;Pas seul&lt;/p&gt;
+  &lt;p&gt;Pas seul&lt;/p&gt;
+&lt;/div&gt;</pre>
+      </td>
+      <td>
+        <pre>p:only-child {
+  background: lightcoral;
+  padding: 10px;
+}</pre>
+      </td>
+      <td class="ex">
+        <div>
+          <p style="background: lightcoral; padding: 10px;">Seul enfant</p>
+        </div>
+        <div>
+          <p>Pas seul</p>
+          <p>Pas seul</p>
+        </div>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>:not(selector)</strong><br>Négation</td>
+      <td>
+        <pre>&lt;p&gt;Normal&lt;/p&gt;
+&lt;p class="special"&gt;Spécial&lt;/p&gt;
+&lt;p&gt;Normal&lt;/p&gt;</pre>
+      </td>
+      <td>
+        <pre>p:not(.special) {
+  color: gray;
+  font-style: italic;
+}</pre>
+      </td>
+      <td class="ex">
+        <p style="color: gray; font-style: italic;">Normal</p>
+        <p>Spécial</p>
+        <p style="color: gray; font-style: italic;">Normal</p>
+      </td>
+    </tr>
+
+
+    <tr>
+      <th colspan="4" style="background:#ffd0f0; text-align: center;">
+        Pseudo-éléments</th>
+    </tr>
+
+    <tr>
+      <td><strong>p::before</strong></td>
+      <td>
+        <pre>&lt;p&gt;Texte&lt;/p&gt;
+&lt;p&gt;Normal&lt;/p&gt;</pre>
+      </td>
+      <td>
+        <pre>p::before {
+  content: "Note: ";
+  color: red;
+}</pre>
+      </td>
+      <td class="ex ex-before">
+        <p>Note: Texte</p>
+        <p>Note: Normal</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>label.required::after</strong></td>
+      <td>
+        <pre>&lt;label class="required"&gt;Email&lt;/label&gt;
+&lt;input type="text"&gt;</pre>
+      </td>
+      <td>
+        <pre>label.required::after {
+  content: " *";
+  color: red;
+  font-weight: bold;
+}</pre>
+      </td>
+      <td class="ex ex-after">
+        <label class="required">Email</label><br>
+        <input type="text">
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>p::first-letter</strong></td>
+      <td>
+        <pre>&lt;p&gt;Texte&lt;/p&gt;</pre>
+      </td>
+      <td>
+        <pre>p::first-letter {
+  font-size: 1.5em;
+  color: red;
+  font-weight: bold;
+}</pre>
+      </td>
+      <td class="ex ex-first-letter">
+        <p>Texte</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>p::first-line</strong></td>
+      <td>
+        <pre>&lt;p&gt;Texte sur plusieurs lignes&lt;/p></pre>
+      </td>
+      <td>
+        <pre>p::first-line {
+  text-transform: uppercase;
+  color: green;
+}</pre>
+      </td>
+      <td class="ex ex-first-line">
+        <p>Texte sur plusieurs lignes, Lorem ipsum dolor sit amet consectetur
+          adipisicing elit. Vero esse, pariatur consequuntur iste consectetur
+          dolorem dolor ipsa adipisci, numquam amet harum autem corporis
+          nesciunt tempora inventore officiis quas maiores libero.</p>
+      </td>
+    </tr>
+
+  </table>
+
+</body>
+
+</html>
