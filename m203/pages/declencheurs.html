@@ -29,6 +29,10 @@ td:first-child{text-align:left}
 .warn{background:#fffbeb;border-color:var(--warn)}
 .tip{background:#f0fdf4;border-color:var(--ok)}
 .yes{color:var(--ok);font-weight:700}.no{color:var(--bad);font-weight:700}
+details{margin:10px 0;border:1px solid #cbd5e1;border-radius:8px;background:var(--soft);padding:0 14px}
+summary{cursor:pointer;font-weight:600;color:var(--main);padding:10px 0}
+details[open] summary{border-bottom:1px solid #cbd5e1;margin-bottom:10px}
+details>:last-child{margin-bottom:12px}
 footer{text-align:center;color:#64748b;font-size:.85rem;padding:20px}
 </style>
 </head>
@@ -66,7 +70,7 @@ footer{text-align:center;color:#64748b;font-size:.85rem;padding:20px}
 <tr><td><code>FOR EACH ROW</code></td><td>Exécuté pour <b>chaque ligne</b> touchée</td></tr>
 <tr><td>Corps</td><td>Les instructions à exécuter</td></tr>
 </table>
-<div class="box warn">⚠️ Si le corps contient plusieurs instructions (<code>BEGIN ... END</code>), il faut changer le délimiteur avec <code>DELIMITER</code>. Une seule instruction : <code>BEGIN/END</code> est facultatif.</div>
+<div class="box warn">⚠️ Si le corps contient plusieurs instructions (<code>BEGIN ... END</code>), il faut changer le délimiteur avec <code>DELIMITER</code>. Même avec une seule instruction, on garde <code>BEGIN ... END</code> par habitude.</div>
 </section>
 
 <section>
@@ -106,8 +110,7 @@ footer{text-align:center;color:#64748b;font-size:.85rem;padding:20px}
 <span class="k">FOR EACH ROW</span>
 <span class="k">BEGIN</span>
   <span class="k">IF</span> NEW.salaire &lt; 0 <span class="k">THEN</span>
-    <span class="k">SIGNAL SQLSTATE</span> <span class="s">'45000'</span>
-    <span class="k">SET MESSAGE_TEXT</span> = <span class="s">'Le salaire ne peut pas être négatif.'</span>;
+    <span class="k">SIGNAL SQLSTATE</span> <span class="s">'45000'</span> <span class="k">SET MESSAGE_TEXT</span> = <span class="s">'Le salaire ne peut pas être négatif.'</span>;
   <span class="k">END IF</span>;
 <span class="k">END</span> //
 <span class="k">DELIMITER</span> ;
@@ -123,8 +126,7 @@ footer{text-align:center;color:#64748b;font-size:.85rem;padding:20px}
 <span class="k">FOR EACH ROW</span>
 <span class="k">BEGIN</span>
   <span class="k">IF</span> NEW.salaire &lt; 0 <span class="k">THEN</span>
-    <span class="k">SIGNAL SQLSTATE</span> <span class="s">'45000'</span>
-    <span class="k">SET MESSAGE_TEXT</span> = <span class="s">'Le salaire ne peut pas être négatif.'</span>;
+    <span class="k">SIGNAL SQLSTATE</span> <span class="s">'45000'</span> <span class="k">SET MESSAGE_TEXT</span> = <span class="s">'Le salaire ne peut pas être négatif.'</span>;
   <span class="k">END IF</span>;
 <span class="k">END</span> //
 <span class="k">DELIMITER</span> ;</pre>
@@ -170,19 +172,27 @@ footer{text-align:center;color:#64748b;font-size:.85rem;padding:20px}
 <h3>AFTER INSERT : mettre à jour une valeur calculée</h3>
 <pre><span class="k">CREATE TABLE</span> Stat_Projet (id_projet <span class="k">INT PRIMARY KEY</span>, nb_dev <span class="k">INT DEFAULT</span> 0);
 
+<span class="k">DELIMITER</span> //
 <span class="k">CREATE TRIGGER</span> tr_nb_dev_ajout
 <span class="k">AFTER INSERT ON</span> Realisation
 <span class="k">FOR EACH ROW</span>
+<span class="k">BEGIN</span>
   <span class="k">UPDATE</span> Stat_Projet <span class="k">SET</span> nb_dev = nb_dev + 1
-  <span class="k">WHERE</span> id_projet = NEW.id_projet;</pre>
+  <span class="k">WHERE</span> id_projet = NEW.id_projet;
+<span class="k">END</span> //
+<span class="k">DELIMITER</span> ;</pre>
 
 <h3>AFTER DELETE : l'inverse</h3>
-<pre><span class="k">CREATE TRIGGER</span> tr_nb_dev_retrait
+<pre><span class="k">DELIMITER</span> //
+<span class="k">CREATE TRIGGER</span> tr_nb_dev_retrait
 <span class="k">AFTER DELETE ON</span> Realisation
 <span class="k">FOR EACH ROW</span>
+<span class="k">BEGIN</span>
   <span class="k">UPDATE</span> Stat_Projet <span class="k">SET</span> nb_dev = nb_dev - 1
-  <span class="k">WHERE</span> id_projet = OLD.id_projet;</pre>
-<div class="box tip">✅ Une seule instruction dans le corps : pas besoin de <code>BEGIN ... END</code> ni de <code>DELIMITER</code>.</div>
+  <span class="k">WHERE</span> id_projet = OLD.id_projet;
+<span class="k">END</span> //
+<span class="k">DELIMITER</span> ;</pre>
+<div class="box tip">✅ Même avec une seule instruction, on garde <code>BEGIN ... END</code> : le bloc est prêt si on ajoute d'autres instructions.</div>
 </section>
 
 <section>
@@ -230,6 +240,118 @@ footer{text-align:center;color:#64748b;font-size:.85rem;padding:20px}
 <li><code>SIGNAL</code> pour refuser une opération.</li>
 <li><code>SHOW TRIGGERS</code> pour lister, <code>DROP TRIGGER</code> pour supprimer.</li>
 </ul>
+</section>
+
+<section>
+<h2>10. Exercices d'auto-évaluation</h2>
+<p>Essayez chaque exercice <b>avant</b> d'ouvrir la correction. Base : <code>Glogiciels</code> (adaptez les noms de colonnes à votre schéma).</p>
+
+<h3>Exercice 1 – Vrai ou faux ?</h3>
+<ol>
+<li>Un trigger <code>AFTER INSERT</code> peut lire <code>OLD</code>.</li>
+<li>Un trigger <code>BEFORE DELETE</code> peut lire <code>OLD</code>.</li>
+<li>On peut appeler un trigger avec <code>CALL</code>.</li>
+<li>Pour modifier un trigger, on utilise <code>ALTER TRIGGER</code>.</li>
+<li>Supprimer une table supprime aussi ses triggers.</li>
+</ol>
+<details><summary>Voir la correction</summary>
+<ol>
+<li><b class="no">Faux</b> : à l'insertion, il n'y a que <code>NEW</code>.</li>
+<li><b class="yes">Vrai</b> : à la suppression, <code>OLD</code> est disponible.</li>
+<li><b class="no">Faux</b> : un trigger s'exécute automatiquement, on ne l'appelle pas.</li>
+<li><b class="no">Faux</b> : il n'existe pas de <code>ALTER TRIGGER</code> ; on fait <code>DROP TRIGGER</code> puis <code>CREATE TRIGGER</code>.</li>
+<li><b class="yes">Vrai</b>.</li>
+</ol>
+</details>
+
+<h3>Exercice 2 – Refuser un prix négatif</h3>
+<p>Créez un trigger qui empêche d'insérer dans <code>Logiciel</code> un logiciel dont le prix est négatif. Message : « Le prix ne peut pas être négatif. »</p>
+<details><summary>Voir la correction</summary>
+<pre><span class="k">DELIMITER</span> //
+<span class="k">CREATE TRIGGER</span> tr_logiciel_prix
+<span class="k">BEFORE INSERT ON</span> Logiciel
+<span class="k">FOR EACH ROW</span>
+<span class="k">BEGIN</span>
+  <span class="k">IF</span> NEW.prix &lt; 0 <span class="k">THEN</span>
+    <span class="k">SIGNAL SQLSTATE</span> <span class="s">'45000'</span> <span class="k">SET MESSAGE_TEXT</span> = <span class="s">'Le prix ne peut pas être négatif.'</span>;
+  <span class="k">END IF</span>;
+<span class="k">END</span> //
+<span class="k">DELIMITER</span> ;</pre>
+<p>On utilise <code>BEFORE</code> pour refuser avant que la ligne soit écrite.</p>
+</details>
+
+<h3>Exercice 3 – Nom en majuscules</h3>
+<p>À chaque insertion dans <code>Developpeur</code>, le <b>nom</b> doit être enregistré en majuscules, même si l'utilisateur l'a saisi en minuscules.</p>
+<details><summary>Voir la correction</summary>
+<pre><span class="k">DELIMITER</span> //
+<span class="k">CREATE TRIGGER</span> tr_dev_nom_maj
+<span class="k">BEFORE INSERT ON</span> Developpeur
+<span class="k">FOR EACH ROW</span>
+<span class="k">BEGIN</span>
+  <span class="k">SET</span> NEW.nom = <span class="k">UPPER</span>(NEW.nom);
+<span class="k">END</span> //
+<span class="k">DELIMITER</span> ;</pre>
+<p>Seul un trigger <code>BEFORE</code> peut modifier <code>NEW</code> avant l'écriture.</p>
+</details>
+
+<h3>Exercice 4 – Journal des prix</h3>
+<p>Créez une table <code>Audit_Prix</code> puis un trigger qui y enregistre l'ancien prix, le nouveau prix et la date, à chaque <b>modification du prix</b> d'un logiciel.</p>
+<details><summary>Voir la correction</summary>
+<pre><span class="k">CREATE TABLE</span> Audit_Prix (
+  id <span class="k">INT AUTO_INCREMENT PRIMARY KEY</span>,
+  id_logiciel <span class="k">INT</span>,
+  ancien_prix <span class="k">DECIMAL</span>(10,2),
+  nouveau_prix <span class="k">DECIMAL</span>(10,2),
+  date_modif <span class="k">DATETIME DEFAULT</span> <span class="k">CURRENT_TIMESTAMP</span>
+);
+
+<span class="k">DELIMITER</span> //
+<span class="k">CREATE TRIGGER</span> tr_audit_prix
+<span class="k">AFTER UPDATE ON</span> Logiciel
+<span class="k">FOR EACH ROW</span>
+<span class="k">BEGIN</span>
+  <span class="k">IF</span> OLD.prix &lt;&gt; NEW.prix <span class="k">THEN</span>
+    <span class="k">INSERT INTO</span> Audit_Prix (id_logiciel, ancien_prix, nouveau_prix)
+    <span class="k">VALUES</span> (OLD.id_logiciel, OLD.prix, NEW.prix);
+  <span class="k">END IF</span>;
+<span class="k">END</span> //
+<span class="k">DELIMITER</span> ;</pre>
+<p>Le <code>IF</code> évite de journaliser une modification qui ne touche pas au prix.</p>
+</details>
+
+<h3>Exercice 5 – Protéger un projet</h3>
+<p>Interdisez la suppression d'un projet qui a déjà des réalisations. Message : « Suppression impossible : ce projet a des réalisations. »</p>
+<details><summary>Voir la correction</summary>
+<pre><span class="k">DELIMITER</span> //
+<span class="k">CREATE TRIGGER</span> tr_projet_suppression
+<span class="k">BEFORE DELETE ON</span> Projet
+<span class="k">FOR EACH ROW</span>
+<span class="k">BEGIN</span>
+  <span class="k">IF EXISTS</span> (<span class="k">SELECT</span> 1 <span class="k">FROM</span> Realisation <span class="k">WHERE</span> id_projet = OLD.id_projet) <span class="k">THEN</span>
+    <span class="k">SIGNAL SQLSTATE</span> <span class="s">'45000'</span> <span class="k">SET MESSAGE_TEXT</span> = <span class="s">'Suppression impossible : ce projet a des réalisations.'</span>;
+  <span class="k">END IF</span>;
+<span class="k">END</span> //
+<span class="k">DELIMITER</span> ;</pre>
+</details>
+
+<h3>Exercice 6 – Trouver l'erreur</h3>
+<p>Ce trigger devrait mettre le nom en majuscules, mais il provoque une erreur. Pourquoi ? Corrigez-le.</p>
+<pre><span class="k">CREATE TRIGGER</span> tr_maj
+<span class="k">AFTER INSERT ON</span> Developpeur
+<span class="k">FOR EACH ROW</span>
+<span class="k">BEGIN</span>
+  <span class="k">SET</span> NEW.nom = <span class="k">UPPER</span>(NEW.nom);
+<span class="k">END</span>;</pre>
+<details><summary>Voir la correction</summary>
+<p>Dans un trigger <code>AFTER</code>, la ligne est déjà écrite : on ne peut plus modifier <code>NEW</code>. Il faut un trigger <code>BEFORE INSERT</code> (voir l'exercice 3).</p>
+</details>
+
+<h3>Exercice 7 – Gérer les triggers</h3>
+<p>Écrivez les instructions pour : (a) afficher tous les triggers, (b) supprimer <code>tr_audit_prix</code> sans erreur s'il n'existe pas.</p>
+<details><summary>Voir la correction</summary>
+<pre><span class="k">SHOW TRIGGERS</span>;
+<span class="k">DROP TRIGGER IF EXISTS</span> tr_audit_prix;</pre>
+</details>
 </section>
 
 </main>

@@ -50,6 +50,7 @@ table{border-collapse:collapse;width:100%;margin:14px 0;background:var(--card);b
 th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;font-size:.96rem}
 th{background:var(--accent-soft)}
 .scroll{overflow-x:auto}
+details{margin-top:8px}summary{cursor:pointer;color:var(--accent);font-weight:600}
 .result{font-size:.9rem;color:var(--muted);margin:-4px 0 12px}
 ul{padding-left:22px}
 li{margin:4px 0}
@@ -124,7 +125,10 @@ li{margin:4px 0}
 <p>Quand le curseur n'a plus de ligne à lire, le <code>FETCH</code> déclenche l'erreur <code>NOT FOUND</code>. Sans précaution, la procédure s'arrête avec une erreur.</p>
 <p>On prévoit donc un <strong>handler</strong> qui lève un indicateur de fin, et on sort de la boucle quand il vaut 1 :</p>
 <pre><code><span class="k">DECLARE</span> fini <span class="k">INT DEFAULT</span> 0;
-<span class="k">DECLARE CONTINUE HANDLER FOR NOT FOUND SET</span> fini = 1;</code></pre>
+<span class="k">DECLARE CONTINUE HANDLER FOR NOT FOUND</span>
+  <span class="k">BEGIN</span>
+    <span class="k">SET</span> fini = 1;
+  <span class="k">END</span>;</code></pre>
 <div class="box">
   <strong>Schéma de la boucle</strong>
   <code>OPEN</code> → boucle : <code>FETCH</code> → si <code>fini = 1</code> alors <code>LEAVE</code> → sinon traiter la ligne → recommencer → <code>CLOSE</code>
@@ -147,18 +151,21 @@ li{margin:4px 0}
   <span class="k">DECLARE</span> fini <span class="k">INT DEFAULT</span> 0;
 
   <span class="c">-- curseur : le prix de chaque logiciel</span>
-  <span class="k">DECLARE</span> c_log <span class="k">CURSOR FOR</span> <span class="k">SELECT</span> prixlog <span class="k">FROM</span> logiciel;
+  <span class="k">DECLARE</span> cur_log <span class="k">CURSOR FOR</span> <span class="k">SELECT</span> prixlog <span class="k">FROM</span> logiciel;
 
   <span class="c">-- fin des lignes</span>
-  <span class="k">DECLARE CONTINUE HANDLER FOR NOT FOUND SET</span> fini = 1;
+  <span class="k">DECLARE CONTINUE HANDLER FOR NOT FOUND</span>
+  <span class="k">BEGIN</span>
+    <span class="k">SET</span> fini = 1;
+  <span class="k">END</span>;
 
   <span class="k">SET</span> nb = 0;
   <span class="k">SET</span> reste = budget;
 
-  <span class="k">OPEN</span> c_log;
+  <span class="k">OPEN</span> cur_log;
 
   boucle: <span class="k">LOOP</span>
-    <span class="k">FETCH</span> c_log <span class="k">INTO</span> v_prix;
+    <span class="k">FETCH</span> cur_log <span class="k">INTO</span> v_prix;
     <span class="k">IF</span> fini = 1 <span class="k">THEN</span> <span class="k">LEAVE</span> boucle; <span class="k">END IF</span>;
 
     <span class="c">-- si le logiciel rentre dans le budget restant, on l'achète</span>
@@ -168,7 +175,7 @@ li{margin:4px 0}
     <span class="k">END IF</span>;
   <span class="k">END LOOP</span>;
 
-  <span class="k">CLOSE</span> c_log;
+  <span class="k">CLOSE</span> cur_log;
 <span class="k">END</span>$$
 <span class="k">DELIMITER</span> ;</code></pre>
 <p>Appel :</p>
@@ -202,32 +209,33 @@ li{margin:4px 0}
   <span class="k">DECLARE</span> fini <span class="k">INT DEFAULT</span> 0;
 
   <span class="c">-- curseur : les développeurs du projet</span>
-  <span class="k">DECLARE</span> c_dev <span class="k">CURSOR FOR</span>
+  <span class="k">DECLARE</span> cur_dev <span class="k">CURSOR FOR</span>
     <span class="k">SELECT</span> d.numdev, d.nomdev
     <span class="k">FROM</span> developpeur d
     <span class="k">JOIN</span> realisation r <span class="k">ON</span> r.numdev = d.numdev
     <span class="k">WHERE</span> r.numproj = p_numproj;
 
-  <span class="k">DECLARE CONTINUE HANDLER FOR NOT FOUND SET</span> fini = 1;
+  <span class="k">DECLARE CONTINUE HANDLER FOR NOT FOUND</span>
+  <span class="k">BEGIN</span>
+    <span class="k">SET</span> fini = 1;
+  <span class="k">END</span>;
 
-  <span class="k">OPEN</span> c_dev;
-  <span class="k">FETCH</span> c_dev <span class="k">INTO</span> v_num, v_nom;      <span class="c">-- 1re lecture</span>
+  <span class="k">OPEN</span> cur_dev;
 
-  <span class="k">WHILE</span> fini = 0 <span class="k">DO</span>
+  boucle: <span class="k">LOOP</span>
+    <span class="k">FETCH</span> cur_dev <span class="k">INTO</span> v_num, v_nom;
+    <span class="k">IF</span> fini = 1 <span class="k">THEN</span> <span class="k">LEAVE</span> boucle; <span class="k">END IF</span>;
+
+    <span class="c">-- une procédure appelée pour chaque développeur</span>
     <span class="k">CALL</span> AjouterJournal(v_num, <span class="k">CONCAT</span>(<span class="s">'Notifié : '</span>, v_nom));
-    <span class="k">FETCH</span> c_dev <span class="k">INTO</span> v_num, v_nom;    <span class="c">-- ligne suivante</span>
-  <span class="k">END WHILE</span>;
+  <span class="k">END LOOP</span>;
 
-  <span class="k">CLOSE</span> c_dev;
+  <span class="k">CLOSE</span> cur_dev;
 <span class="k">END</span>$$
 <span class="k">DELIMITER</span> ;
 
 <span class="k">CALL</span> NotifierEquipe(1);
 <span class="k">SELECT</span> * <span class="k">FROM</span> journal;</code></pre>
-<div class="box">
-  <strong>Remarque</strong>
-  Avec <code>WHILE</code>, on fait un <code>FETCH</code> avant la boucle, puis un <code>FETCH</code> à la fin de chaque tour. Avec <code>LOOP</code>, un seul <code>FETCH</code> au début suffit.
-</div>
 
 <h2>9. Erreurs fréquentes</h2>
 <div class="scroll">
@@ -255,6 +263,233 @@ li{margin:4px 0}
 <div class="box ok">
   <strong>À retenir</strong>
   Un curseur parcourt un résultat de SELECT ligne par ligne : <code>DECLARE</code> → <code>OPEN</code> → <code>FETCH</code> (en boucle) → <code>CLOSE</code>. Il est en lecture seule, non navigable et insensible aux modifications faites après l'ouverture. Le handler <code>NOT FOUND</code> permet de détecter la fin des lignes.
+</div>
+
+<h2>Exercices</h2>
+<p>Base <strong>Glogiciels</strong>. Adaptez les noms de tables et de colonnes à votre schéma. Pour chaque exercice : écrivez la procédure, puis testez-la avec un <code>CALL</code>. Ouvrez la <strong>correction</strong> seulement après avoir essayé.</p>
+
+<div class="card" style="margin:14px 0">
+  <h3>Exercice 1 – Échauffement : compter les logiciels</h3>
+  <p>Créez la procédure <code>CompterLogiciels(OUT nb INT)</code>. Avec un curseur sur la table <code>logiciel</code>, parcourez toutes les lignes et comptez-les.</p>
+  <p><em>But : s'entraîner sur la syntaxe (en pratique, <code>COUNT(*)</code> suffirait).</em></p>
+  <details><summary>Indice</summary><p>Une variable <code>nb</code> à 0, puis <code>SET nb = nb + 1</code> à chaque tour de boucle.</p></details>
+  <details><summary>Correction</summary>
+<pre><code><span class="k">DELIMITER</span> $$
+<span class="k">CREATE PROCEDURE</span> CompterLogiciels(<span class="k">OUT</span> nb <span class="k">INT</span>)
+<span class="k">BEGIN</span>
+  <span class="k">DECLARE</span> v_prix <span class="k">DECIMAL</span>(10,2);
+  <span class="k">DECLARE</span> fini <span class="k">INT</span> <span class="k">DEFAULT</span> 0;
+
+  <span class="k">DECLARE</span> cur_log <span class="k">CURSOR FOR</span> <span class="k">SELECT</span> prixlog <span class="k">FROM</span> logiciel;
+
+  <span class="k">DECLARE</span> <span class="k">CONTINUE HANDLER FOR NOT FOUND</span>
+  <span class="k">BEGIN</span>
+    <span class="k">SET</span> fini = 1;
+  <span class="k">END</span>;
+
+  <span class="k">SET</span> nb = 0;
+
+  <span class="k">OPEN</span> cur_log;
+
+  boucle: <span class="k">LOOP</span>
+    <span class="k">FETCH</span> cur_log <span class="k">INTO</span> v_prix;
+    <span class="k">IF</span> fini = 1 <span class="k">THEN</span> <span class="k">LEAVE</span> boucle; <span class="k">END IF</span>;
+
+    <span class="k">SET</span> nb = nb + 1;
+  <span class="k">END LOOP</span>;
+
+  <span class="k">CLOSE</span> cur_log;
+<span class="k">END</span>$$
+<span class="k">DELIMITER</span> ;
+
+<span class="k">CALL</span> CompterLogiciels(@n);
+<span class="k">SELECT</span> @n;</code></pre>
+  </details>
+</div>
+
+<div class="card" style="margin:14px 0">
+  <h3>Exercice 2 – Bienvenue aux développeurs</h3>
+  <p>Avec la table <code>journal</code> et la procédure <code>AjouterJournal</code> de l'exemple 2, créez la procédure <code>AccueillirTous()</code>. Elle parcourt tous les développeurs et, pour chacun, appelle <code>AjouterJournal</code> avec le message <code>Bienvenue nom</code>.</p>
+  <details><summary>Indice</summary><p>Curseur sur <code>developpeur</code> (numéro et nom), puis <code>CALL AjouterJournal(...)</code> dans la boucle.</p></details>
+  <details><summary>Correction</summary>
+<pre><code><span class="k">DELIMITER</span> $$
+<span class="k">CREATE PROCEDURE</span> AccueillirTous()
+<span class="k">BEGIN</span>
+  <span class="k">DECLARE</span> v_num <span class="k">INT</span>;
+  <span class="k">DECLARE</span> v_nom <span class="k">VARCHAR</span>(50);
+  <span class="k">DECLARE</span> fini <span class="k">INT</span> <span class="k">DEFAULT</span> 0;
+
+  <span class="k">DECLARE</span> cur_dev <span class="k">CURSOR FOR</span> <span class="k">SELECT</span> numdev, nomdev <span class="k">FROM</span> developpeur;
+
+  <span class="k">DECLARE</span> <span class="k">CONTINUE HANDLER FOR NOT FOUND</span>
+  <span class="k">BEGIN</span>
+    <span class="k">SET</span> fini = 1;
+  <span class="k">END</span>;
+
+  <span class="k">OPEN</span> cur_dev;
+
+  boucle: <span class="k">LOOP</span>
+    <span class="k">FETCH</span> cur_dev <span class="k">INTO</span> v_num, v_nom;
+    <span class="k">IF</span> fini = 1 <span class="k">THEN</span> <span class="k">LEAVE</span> boucle; <span class="k">END IF</span>;
+
+    <span class="k">CALL</span> AjouterJournal(v_num, <span class="k">CONCAT</span>(<span class="s">'Bienvenue '</span>, v_nom));
+  <span class="k">END LOOP</span>;
+
+  <span class="k">CLOSE</span> cur_dev;
+<span class="k">END</span>$$
+<span class="k">DELIMITER</span> ;
+
+<span class="k">CALL</span> AccueillirTous();
+<span class="k">SELECT</span> * <span class="k">FROM</span> journal;</code></pre>
+  </details>
+</div>
+
+<div class="card" style="margin:14px 0">
+  <h3>Exercice 3 – Plafond de dépense</h3>
+  <p>Créez <code>AcheterJusquaPlafond(IN plafond DECIMAL(10,2), OUT nb INT, OUT total DECIMAL(10,2))</code>. Parcourez les logiciels dans l'ordre. Ajoutez chaque prix au total et comptez le logiciel. <strong>Dès que le total dépasse le plafond, arrêtez la boucle</strong> avec <code>LEAVE</code>.</p>
+  <details><summary>Indice</summary><p>Après chaque <code>FETCH</code>, calculez <code>total + prix</code>. S'il dépasse le plafond, faites <code>LEAVE</code> <em>avant</em> d'ajouter ce logiciel.</p></details>
+  <details><summary>Correction</summary>
+<pre><code><span class="k">DELIMITER</span> $$
+<span class="k">CREATE PROCEDURE</span> AcheterJusquaPlafond(<span class="k">IN</span> plafond <span class="k">DECIMAL</span>(10,2),
+                                      <span class="k">OUT</span> nb <span class="k">INT</span>,
+                                      <span class="k">OUT</span> total <span class="k">DECIMAL</span>(10,2))
+<span class="k">BEGIN</span>
+  <span class="k">DECLARE</span> v_prix <span class="k">DECIMAL</span>(10,2);
+  <span class="k">DECLARE</span> fini <span class="k">INT</span> <span class="k">DEFAULT</span> 0;
+
+  <span class="k">DECLARE</span> cur_log <span class="k">CURSOR FOR</span> <span class="k">SELECT</span> prixlog <span class="k">FROM</span> logiciel;
+
+  <span class="k">DECLARE</span> <span class="k">CONTINUE HANDLER FOR NOT FOUND</span>
+  <span class="k">BEGIN</span>
+    <span class="k">SET</span> fini = 1;
+  <span class="k">END</span>;
+
+  <span class="k">SET</span> nb = 0;
+  <span class="k">SET</span> total = 0;
+
+  <span class="k">OPEN</span> cur_log;
+
+  boucle: <span class="k">LOOP</span>
+    <span class="k">FETCH</span> cur_log <span class="k">INTO</span> v_prix;
+    <span class="k">IF</span> fini = 1 <span class="k">THEN</span> <span class="k">LEAVE</span> boucle; <span class="k">END IF</span>;
+
+    <span class="c">-- le plafond serait dépassé : on arrête avant d'ajouter ce logiciel</span>
+    <span class="k">IF</span> total + v_prix &gt; plafond <span class="k">THEN</span>
+      <span class="k">LEAVE</span> boucle;
+    <span class="k">END IF</span>;
+
+    <span class="k">SET</span> total = total + v_prix;
+    <span class="k">SET</span> nb = nb + 1;
+  <span class="k">END LOOP</span>;
+
+  <span class="k">CLOSE</span> cur_log;
+<span class="k">END</span>$$
+<span class="k">DELIMITER</span> ;
+
+<span class="k">CALL</span> AcheterJusquaPlafond(10000, @nb, @total);
+<span class="k">SELECT</span> @nb <span class="k">AS</span> logiciels, @total <span class="k">AS</span> total;</code></pre>
+  </details>
+</div>
+
+<div class="card" style="margin:14px 0">
+  <h3>Exercice 4 – Acheter et mémoriser</h3>
+  <p>Reprenez l'exemple 1 (<code>Acheter</code>). Créez une table <code>achats(nom, prix)</code> et enregistrez-y chaque logiciel acheté. À la fin, affichez la table et le budget restant.</p>
+  <details><summary>Indice</summary><p>Le curseur doit lire deux colonnes : <code>nomlog</code> et <code>prixlog</code>, donc deux variables dans le <code>FETCH</code>.</p></details>
+  <details><summary>Correction</summary>
+<pre><code><span class="k">CREATE TABLE IF NOT EXISTS</span> achats (
+  nom <span class="k">VARCHAR</span>(50),
+  prix <span class="k">DECIMAL</span>(10,2)
+);
+
+<span class="k">DELIMITER</span> $$
+<span class="k">CREATE PROCEDURE</span> AcheterEtMemoriser(<span class="k">IN</span> budget <span class="k">DECIMAL</span>(10,2))
+<span class="k">BEGIN</span>
+  <span class="k">DECLARE</span> v_nom <span class="k">VARCHAR</span>(50);
+  <span class="k">DECLARE</span> v_prix <span class="k">DECIMAL</span>(10,2);
+  <span class="k">DECLARE</span> v_reste <span class="k">DECIMAL</span>(10,2);
+  <span class="k">DECLARE</span> fini <span class="k">INT</span> <span class="k">DEFAULT</span> 0;
+
+  <span class="k">DECLARE</span> cur_log <span class="k">CURSOR FOR</span> <span class="k">SELECT</span> nomlog, prixlog <span class="k">FROM</span> logiciel;
+
+  <span class="k">DECLARE</span> <span class="k">CONTINUE HANDLER FOR NOT FOUND</span>
+  <span class="k">BEGIN</span>
+    <span class="k">SET</span> fini = 1;
+  <span class="k">END</span>;
+
+  <span class="k">DELETE FROM</span> achats;
+  <span class="k">SET</span> v_reste = budget;
+
+  <span class="k">OPEN</span> cur_log;
+
+  boucle: <span class="k">LOOP</span>
+    <span class="k">FETCH</span> cur_log <span class="k">INTO</span> v_nom, v_prix;
+    <span class="k">IF</span> fini = 1 <span class="k">THEN</span> <span class="k">LEAVE</span> boucle; <span class="k">END IF</span>;
+
+    <span class="k">IF</span> v_prix &lt;= v_reste <span class="k">THEN</span>
+      <span class="k">INSERT INTO</span> achats <span class="k">VALUES</span> (v_nom, v_prix);
+      <span class="k">SET</span> v_reste = v_reste - v_prix;
+    <span class="k">END IF</span>;
+  <span class="k">END LOOP</span>;
+
+  <span class="k">CLOSE</span> cur_log;
+
+  <span class="k">SELECT</span> * <span class="k">FROM</span> achats;
+  <span class="k">SELECT</span> v_reste <span class="k">AS</span> budget_restant;
+<span class="k">END</span>$$
+<span class="k">DELIMITER</span> ;
+
+<span class="k">CALL</span> AcheterEtMemoriser(10000);</code></pre>
+  </details>
+</div>
+
+<div class="card" style="margin:14px 0">
+  <h3>Exercice 5 – Défi : les refus</h3>
+  <p>Modifiez l'exercice 4 : parcourez les logiciels du <strong>plus cher au moins cher</strong> (<code>ORDER BY prixlog DESC</code>). Renvoyez en <code>OUT</code> le nombre de logiciels achetés et le nombre de logiciels refusés (trop chers pour le budget restant).</p>
+  <details><summary>Indice</summary><p>Ajoutez un compteur <code>refuses</code> dans le <code>ELSE</code> du <code>IF</code>.</p></details>
+  <details><summary>Correction</summary>
+<pre><code><span class="k">DELIMITER</span> $$
+<span class="k">CREATE PROCEDURE</span> AcheterEtCompter(<span class="k">IN</span> budget <span class="k">DECIMAL</span>(10,2),
+                                  <span class="k">OUT</span> achetes <span class="k">INT</span>,
+                                  <span class="k">OUT</span> refuses <span class="k">INT</span>)
+<span class="k">BEGIN</span>
+  <span class="k">DECLARE</span> v_prix <span class="k">DECIMAL</span>(10,2);
+  <span class="k">DECLARE</span> v_reste <span class="k">DECIMAL</span>(10,2);
+  <span class="k">DECLARE</span> fini <span class="k">INT</span> <span class="k">DEFAULT</span> 0;
+
+  <span class="c">-- du plus cher au moins cher</span>
+  <span class="k">DECLARE</span> cur_log <span class="k">CURSOR FOR</span>
+    <span class="k">SELECT</span> prixlog <span class="k">FROM</span> logiciel <span class="k">ORDER BY</span> prixlog <span class="k">DESC</span>;
+
+  <span class="k">DECLARE</span> <span class="k">CONTINUE HANDLER FOR NOT FOUND</span>
+  <span class="k">BEGIN</span>
+    <span class="k">SET</span> fini = 1;
+  <span class="k">END</span>;
+
+  <span class="k">SET</span> achetes = 0;
+  <span class="k">SET</span> refuses = 0;
+  <span class="k">SET</span> v_reste = budget;
+
+  <span class="k">OPEN</span> cur_log;
+
+  boucle: <span class="k">LOOP</span>
+    <span class="k">FETCH</span> cur_log <span class="k">INTO</span> v_prix;
+    <span class="k">IF</span> fini = 1 <span class="k">THEN</span> <span class="k">LEAVE</span> boucle; <span class="k">END IF</span>;
+
+    <span class="k">IF</span> v_prix &lt;= v_reste <span class="k">THEN</span>
+      <span class="k">SET</span> v_reste = v_reste - v_prix;
+      <span class="k">SET</span> achetes = achetes + 1;
+    <span class="k">ELSE</span>
+      <span class="k">SET</span> refuses = refuses + 1;
+    <span class="k">END IF</span>;
+  <span class="k">END LOOP</span>;
+
+  <span class="k">CLOSE</span> cur_log;
+<span class="k">END</span>$$
+<span class="k">DELIMITER</span> ;
+
+<span class="k">CALL</span> AcheterEtCompter(10000, @a, @r);
+<span class="k">SELECT</span> @a <span class="k">AS</span> achetes, @r <span class="k">AS</span> refuses;</code></pre>
+  </details>
 </div>
 
 </main>
