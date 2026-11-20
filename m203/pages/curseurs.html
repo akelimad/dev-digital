@@ -90,7 +90,7 @@ li{margin:4px 0}
 
 <h2>3. Les 3 propriétés d'un curseur MySQL</h2>
 <div class="grid">
-  <div class="card"><h3>Read-only</h3><p>Lecture seule : on ne modifie pas la base à travers le curseur (sauf avec la clause <code>FOR UPDATE</code>).</p></div>
+  <div class="card"><h3>Read-only</h3><p>Lecture seule : on ne modifie pas la base à travers le curseur (sauf avec la clause <code>FOR UPDATE</code>, voir l'exemple 3).</p></div>
   <div class="card"><h3>Non-scrollable</h3><p>Non navigable : on parcourt du début à la fin, sans jamais revenir à la ligne précédente.</p></div>
   <div class="card"><h3>Asensitive</h3><p>Insensible : le curseur travaille sur une copie temporaire. Une mise à jour faite après l'ouverture n'y apparaît pas.</p></div>
 </div>
@@ -237,7 +237,64 @@ li{margin:4px 0}
 <span class="k">CALL</span> NotifierEquipe(1);
 <span class="k">SELECT</span> * <span class="k">FROM</span> journal;</code></pre>
 
-<h2>9. Erreurs fréquentes</h2>
+<h2>9. Exemple 3 – Accorder une prime avec FOR UPDATE</h2>
+<p><strong>Problème :</strong> l'entreprise souhaite accorder une prime de 500 DH aux employés dont le salaire est inférieur ou égal à 5 000 DH. On parcourt les employés concernés et on augmente leur salaire.</p>
+<div class="box ok">
+  <strong>Pourquoi FOR UPDATE ?</strong>
+  On lit le salaire actuel de chaque employé avant de le modifier. <code>FOR UPDATE</code> verrouille les lignes sélectionnées pendant la transaction : une autre session ne peut pas modifier ces mêmes lignes avant notre <code>COMMIT</code>.
+</div>
+<p><strong>Principe :</strong> le curseur lit le matricule et le salaire. Si le salaire est inférieur ou égal à 5 000 DH, un <code>UPDATE</code> ajoute la prime de 500 DH.</p>
+<pre><code><span class="k">DELIMITER</span> $$
+<span class="k">CREATE PROCEDURE</span> AccorderPrime()
+<span class="k">BEGIN</span>
+  <span class="c">-- variables</span>
+  <span class="k">DECLARE</span> v_mat <span class="k">INT</span>;
+  <span class="k">DECLARE</span> v_salaire <span class="k">DECIMAL</span>(10,2);
+  <span class="k">DECLARE</span> fini <span class="k">INT DEFAULT</span> 0;
+
+  <span class="c">-- curseur : employés dont le salaire est inférieur ou égal à 5000 DH</span>
+  <span class="k">DECLARE</span> cur_emp <span class="k">CURSOR FOR</span>
+    <span class="k">SELECT</span> matricule, salaire
+    <span class="k">FROM</span> employe
+    <span class="k">WHERE</span> salaire &lt;= 5000
+    <span class="k">FOR UPDATE</span>;
+
+  <span class="c">-- détection de la fin du curseur</span>
+  <span class="k">DECLARE CONTINUE HANDLER FOR NOT FOUND</span>
+    <span class="k">SET</span> fini = 1;
+
+  <span class="k">START TRANSACTION</span>;
+
+  <span class="k">OPEN</span> cur_emp;
+
+  boucle: <span class="k">LOOP</span>
+    <span class="k">FETCH</span> cur_emp <span class="k">INTO</span> v_mat, v_salaire;
+    <span class="k">IF</span> fini = 1 <span class="k">THEN</span>
+      <span class="k">LEAVE</span> boucle;
+    <span class="k">END IF</span>;
+
+    <span class="c">-- ajouter une prime de 500 DH à l'employé courant</span>
+    <span class="k">UPDATE</span> employe
+    <span class="k">SET</span> salaire = salaire + 500
+    <span class="k">WHERE</span> matricule = v_mat;
+  <span class="k">END LOOP</span>;
+
+  <span class="k">CLOSE</span> cur_emp;
+
+  <span class="k">COMMIT</span>;
+<span class="k">END</span>$$
+<span class="k">DELIMITER</span> ;
+
+<span class="k">CALL</span> AccorderPrime();
+
+<span class="c">-- vérifier les salaires après l'opération</span>
+<span class="k">SELECT</span> matricule, salaire <span class="k">FROM</span> employe;</code></pre>
+<div class="box warn">
+  <strong>À retenir</strong>
+  <code>FOR UPDATE</code> s'utilise avec une transaction. Les lignes sont verrouillées à l'ouverture du curseur et les verrous sont libérés au <code>COMMIT</code> (ou au <code>ROLLBACK</code>). Le nom de la table et les colonnes (<code>employe</code>, <code>matricule</code>, <code>salaire</code>) sont à adapter à votre base de données.
+</div>
+
+<h2>10. Erreurs fréquentes</h2>
 <div class="scroll">
 <table>
   <tr><th>Erreur</th><th>Conséquence</th><th>Solution</th></tr>
@@ -246,10 +303,11 @@ li{margin:4px 0}
   <tr><td>Nombre de variables ≠ nombre de colonnes</td><td>Erreur au <code>FETCH</code></td><td>Une variable par colonne, même ordre</td></tr>
   <tr><td>Oublier <code>CLOSE</code></td><td>Mémoire non libérée</td><td>Toujours fermer le curseur</td></tr>
   <tr><td>Nom de variable identique à une colonne</td><td>Le <code>WHERE</code> compare la colonne à elle-même</td><td>Préfixer les variables (<code>v_</code>, <code>p_</code>)</td></tr>
+  <tr><td><code>FOR UPDATE</code> sans transaction</td><td>Les verrous sont libérés tout de suite (autocommit)</td><td>Entourer la boucle de <code>START TRANSACTION</code> ... <code>COMMIT</code></td></tr>
 </table>
 </div>
 
-<h2>10. Méthodologie en 6 points</h2>
+<h2>11. Méthodologie en 6 points</h2>
 <ol>
   <li>Écrire d'abord le <code>SELECT</code> et le tester seul.</li>
   <li>Déclarer une variable par colonne, puis le curseur, puis le handler <code>NOT FOUND</code>.</li>
